@@ -1,0 +1,31 @@
+body {
+  margin: 0;
+  overflow: auto;
+}
+h1{
+  
+  color: azure;
+}
+h4{
+  transform: translateX(-600px);
+  color: white;
+  border-bottom: 1px solid white;
+  padding: 2px;
+}
+h5{
+  color: white;
+}
+h6{
+  color: white;
+}
+p{
+  width: 200px;
+  color: white;
+  margin: 1px;
+  height: 500px;
+  min-height: 300px;
+  transform: translateX(-600px);
+}
+.descContainer{
+  transform: translate3d(-600px, -100px, 0px);
+}
