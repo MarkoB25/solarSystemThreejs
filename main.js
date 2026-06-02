@@ -1,0 +1,190 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { Pane, TabApi } from 'tweakpane';
+import * as descService from './descriptionsService.js';
+import {EntityCreator} from './entityCreator.js';
+import { EffectComposer, FBXLoader, GLTFLoader, MTLLoader, OBJLoader, OutputPass } from 'three/examples/jsm/Addons.js';
+import { DefaultScene } from './defaultScene.js';
+import { SpaceViewerScene } from './spaceViewerScene.js';
+import { RenderTransitionPass } from 'three/examples/jsm/postprocessing/RenderTransitionPass.js';
+
+let mixer = new THREE.AnimationMixer();
+let animations = [];
+let scene = new THREE.Scene();
+const textureLoader = new THREE.TextureLoader();
+const domRenderer = new CSS2DRenderer();
+domRenderer.setSize(window.innerWidth, window.innerHeight);
+domRenderer.domElement.style.position = 'absolute';
+domRenderer.domElement.style.top = '0px';
+domRenderer.domElement.style.pointerEvents = 'none';
+const entityCreator = new EntityCreator();
+const defaultScene = new DefaultScene();
+const spaceViewerScene = new SpaceViewerScene();
+
+const scene0 = defaultScene.getScene();
+const scene1 = spaceViewerScene.getScene();
+
+//const playerCharacterController = new PlayerCharacterController();
+
+
+document.body.appendChild(domRenderer.domElement);
+
+let currentScene = "default";
+//postavljanje pozadine
+scene.background = textureLoader.load('static/stars/stars.jpg');
+//scene.background = textureLoader.load('static/neptune/neptune.jpg');
+
+init();
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function onPointerMove( event ) {
+	// calculate pointer position in normalized device coordinates
+	// (-1 to +1) for both components
+	pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+};
+
+
+function wallIntersect(){
+    raycaster.setFromCamera( pointer, camera );
+    let objs =  [];
+    scene.children.forEach(child =>{
+         if(typeof child === 'object'){
+            objs.push(child);
+        }
+    })
+    const intersects = raycaster.intersectObjects( objs );
+    let currentElement = intersects[0];
+    console.log(currentElement);
+
+    if(typeof currentElement === 'object'){
+        if(currentElement.object.name === 'firstWall'){
+            currentScene = 'scene1';
+         //   clearScene();
+            setCamera();
+        }
+      
+        if(currentElement.object.name === 'secondWall'){
+            currentScene = 'scene2';
+            setCamera();
+           // clearScene();
+        }
+    };   
+};
+
+
+
+function init(){
+    scene = scene0;
+  /*   playerCharacterController.loadPlayerModel(scene);
+    scene.add(playerCharacterController.model);
+    playerCharacterController.stateMachine.setState('idle'); */
+ 
+}
+
+function renderCurrentScene(){
+    if(currentScene == "default"){
+        scene = scene0;
+        if(!scene.background){
+        scene.background = textureLoader.load('static/stars/stars.jpg');
+       }      
+    }
+    if(currentScene == "scene1"){
+        // render init
+        scene = scene1;
+        
+        if(!scene.background){
+            scene.background = textureLoader.load('static/stars/stars.jpg'); 
+        }  
+       // animate();
+    }
+    if(currentScene == "scene2"){
+        // render init
+        
+    } 
+}
+function setCamera(){
+    
+    if(currentScene == "default"){
+        camera.position.z = 50;
+        camera.position.y = 30;
+        // render init
+    }
+    if(currentScene == "scene1"){
+        // render init
+        camera.position.z = 300;
+        camera.position.y = 30;
+    }
+    if(currentScene == "scene2"){
+        camera.position.z = 300;
+        camera.position.y = 30;
+    }
+    renderer.render( scene, camera );
+}
+const clock = new THREE.Clock();
+//const deltaTime = clock.getDelta();
+
+// kamera i renderer
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+);
+
+camera.position.z = 1000;
+camera.position.y = 5;
+ 
+const canvas = document.querySelector("canvas.threejs");
+const canvasMenu = document.querySelector("canvas.menu");
+
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    antialias: true,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const kontrole = new OrbitControls(camera, canvas);
+kontrole.enableDamping = true;
+//kontrole.listenToKeyEvents(window);
+
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener( 'click', () => {
+    if(currentScene == 'default'){
+        wallIntersect();
+    }
+    if(currentScene == 'scene1'){
+        //showDesc();
+    } 
+    if(currentScene == 'scene2'){
+        wallIntersect();
+    }
+} );
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight; //azuriranje rez. ekrana
+    camera.updateProjectionMatrix(); //azuriranje projekcije matrice sa ciljem dobijanja nove rezolucije prozora
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    domRenderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const gameloop = () => {
+    kontrole.update(); // konstantno azuriranje, pri svakoj iteraciji
+    renderer.render(scene, camera);
+    domRenderer.render(scene, camera);
+    const deltaTime = clock.getDelta();
+    //showDesc();
+    renderCurrentScene();
+    //animate();
+    mixer.update(deltaTime);
+    window.requestAnimationFrame(gameloop);
+
+}
+
+gameloop();
+
+
