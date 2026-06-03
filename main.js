@@ -78,7 +78,8 @@ function wallIntersect(){
 
 
 function init(){
-    scene = scene0;
+   // scene = scene0;
+    
   /*   playerCharacterController.loadPlayerModel(scene);
     scene.add(playerCharacterController.model);
     playerCharacterController.stateMachine.setState('idle'); */
@@ -152,7 +153,22 @@ const kontrole = new OrbitControls(camera, canvas);
 kontrole.enableDamping = true;
 //kontrole.listenToKeyEvents(window);
 
+ const keysPressed = [];
+window.addEventListener('keydown', (e) => {
+    if((e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') && keysPressed.indexOf(e.key) === -1){
+        keysPressed.push(e.key);
+        handleInput(gameState, keysPressed);
+    };
+});
+window.addEventListener('keyup', (e) => {
+    if(e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp'){
+        keysPressed.splice(keysPressed.indexOf(e.key), 1);
+        handleInput(gameState, keysPressed);
+    };
+});
+
 window.addEventListener('mousemove', onPointerMove);
+
 window.addEventListener( 'click', () => {
     if(currentScene == 'default'){
         wallIntersect();

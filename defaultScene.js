@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { FBXLoader, MTLLoader, OBJLoader } from 'three/examples/jsm/Addons.js';
+import { FBXLoader, GLTFLoader, MTLLoader, OBJLoader } from 'three/examples/jsm/Addons.js';
 
 export class DefaultScene{
     constructor(scene = new THREE.Scene(), 
@@ -35,6 +35,33 @@ export class DefaultScene{
     floor.position.y = - 0.25;
     floor.userData.physics = { mass: 0 };
     scene.add( floor );
+
+    const loader = new GLTFLoader();
+    loader.load('models/Soldier.glb', (gltf) => {
+
+        const model = gltf.scene;
+        model.scale.set(100, 100, 100);
+
+        model.traverse((object) => {
+            if( object.isMesh )object.castShadow = true;
+        });
+        
+       // debugger
+        console.log(scene);
+        console.log(model);
+        console.log(new THREE.Box3().setFromObject(gltf.scene));
+        
+        scene.add(model);
+        const animations = gltf.animations;
+        const mixer = new THREE.AnimationMixer(model);
+
+        const idleAction = mixer.clipAction(animations[0]);
+        const walkAction = mixer.clipAction(animations[3]);
+        const runAction = mixer.clipAction(animations[1]);
+
+        const actions = [idleAction, walkAction, runAction]; 
+        console.log("Something in the way");
+    });
 
 
     // ambient light
