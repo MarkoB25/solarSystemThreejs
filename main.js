@@ -8,6 +8,7 @@ import { EffectComposer, FBXLoader, GLTFLoader, MTLLoader, OBJLoader, OutputPass
 import { DefaultScene } from './defaultScene.js';
 import { SpaceViewerScene } from './spaceViewerScene.js';
 import { RenderTransitionPass } from 'three/examples/jsm/postprocessing/RenderTransitionPass.js';
+import { CharacterController } from './CharacterController.js';
 
 let mixer = new THREE.AnimationMixer();
 let animations = [];
@@ -18,15 +19,6 @@ domRenderer.setSize(window.innerWidth, window.innerHeight);
 domRenderer.domElement.style.position = 'absolute';
 domRenderer.domElement.style.top = '0px';
 domRenderer.domElement.style.pointerEvents = 'none';
-const entityCreator = new EntityCreator();
-const defaultScene = new DefaultScene();
-const spaceViewerScene = new SpaceViewerScene();
-
-const scene0 = defaultScene.getScene();
-const scene1 = spaceViewerScene.getScene();
-
-//const playerCharacterController = new PlayerCharacterController();
-
 
 document.body.appendChild(domRenderer.domElement);
 
@@ -37,6 +29,77 @@ scene.background = textureLoader.load('static/stars/stars.jpg');
 
 init();
 
+function init(){
+
+ const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+);
+
+camera.position.z = 1000;
+camera.position.y = 5;
+
+const canvas = document.querySelector("canvas.threejs");
+const canvasMenu = document.querySelector("canvas.menu");
+
+const kontrole = new OrbitControls(camera, canvas);
+kontrole.enableDamping = true;
+//kontrole.listenToKeyEvents(window);
+
+
+const entityCreator = new EntityCreator();
+const defaultScene = new DefaultScene(scene, camera , kontrole);
+const spaceViewerScene = new SpaceViewerScene();
+let characterController;
+
+
+const scene0 = defaultScene.getScene();
+const scene1 = spaceViewerScene.getScene();
+
+const loader = new GLTFLoader();
+loader.load('models/Soldier.glb', (gltf) => {
+
+    const model = gltf.scene;
+    model.scale.set(100, 100, 100);
+
+    model.traverse((object) => {
+        if( object.isMesh )object.castShadow = true;
+    });
+    const actions = new Map(); 
+
+    scene.add(model);
+    const animations = gltf.animations.filter(a => a.name != 'TPose');
+    const mixer = new THREE.AnimationMixer(model);
+
+   /*  gltfAnimations.filter(a => a.name != 'TPose').forEach((a: THREE.AnimationClip) => {
+        animationsMap.set(a.name, mixer.clipAction(a))
+    })
+ */
+    //let map = new Map();
+console.log(gltf.animations);
+console.log(animations);
+    const idleAction = mixer.clipAction(animations[0]);
+    actions.set('idle', idleAction);
+    const walkAction = mixer.clipAction(animations[2]);
+    actions.set('walk', walkAction);
+    const runAction = mixer.clipAction(animations[1]);
+    actions.set('run', runAction);
+    
+    console.log(actions);
+    characterController = new CharacterController(model, mixer, actions, kontrole, camera, 'idle');
+
+});
+
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    antialias: true,
+});
+ 
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
@@ -46,7 +109,6 @@ function onPointerMove( event ) {
 	pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 };
-
 
 function wallIntersect(){
     raycaster.setFromCamera( pointer, camera );
@@ -74,17 +136,6 @@ function wallIntersect(){
         }
     };   
 };
-
-
-
-function init(){
-   // scene = scene0;
-    
-  /*   playerCharacterController.loadPlayerModel(scene);
-    scene.add(playerCharacterController.model);
-    playerCharacterController.stateMachine.setState('idle'); */
- 
-}
 
 function renderCurrentScene(){
     if(currentScene == "default"){
@@ -125,45 +176,29 @@ function setCamera(){
     }
     renderer.render( scene, camera );
 }
-const clock = new THREE.Clock();
-//const deltaTime = clock.getDelta();
 
-// kamera i renderer
-const camera = new THREE.PerspectiveCamera(
-    45,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    10000
-);
-
-camera.position.z = 1000;
-camera.position.y = 5;
- 
-const canvas = document.querySelector("canvas.threejs");
-const canvasMenu = document.querySelector("canvas.menu");
-
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
-    antialias: true,
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-const kontrole = new OrbitControls(camera, canvas);
-kontrole.enableDamping = true;
-//kontrole.listenToKeyEvents(window);
 
  const keysPressed = [];
 window.addEventListener('keydown', (e) => {
-    if((e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') && keysPressed.indexOf(e.key) === -1){
+    if(e.key === 'Shift' && characterController){
         keysPressed.push(e.key);
-        handleInput(gameState, keysPressed);
+        characterController.toggleRun = true;
+        console.log(characterController.toggleRun);
+    };
+    if(e.key == 'w' || e.key == 'a' || e.key == 's' || e.key == 'd' && characterController){
+        keysPressed.push(e.key);
+        console.log('walk');
     };
 });
 window.addEventListener('keyup', (e) => {
-    if(e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp'){
+    if(e.key === 'Shift' && characterController){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
-        handleInput(gameState, keysPressed);
+        characterController.toggleRun = false;
+        console.log(characterController.toggleRun);
+    };
+     if(e.key == 'w' || e.key == 'a' || e.key == 's' || e.key == 'd' && characterController){
+        keysPressed.splice(keysPressed.indexOf(e.key), 1);
+        console.log('stop');
     };
 });
 
@@ -188,19 +223,28 @@ window.addEventListener('resize', () => {
     domRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+const clock = new THREE.Clock();
+
 const gameloop = () => {
+    let mixerUpadateDelta = clock.getDelta();
+    if(characterController){
+        characterController.update(mixerUpadateDelta, keysPressed);
+    }
     kontrole.update(); // konstantno azuriranje, pri svakoj iteraciji
     renderer.render(scene, camera);
     domRenderer.render(scene, camera);
-    const deltaTime = clock.getDelta();
-    //showDesc();
     renderCurrentScene();
-    //animate();
-    mixer.update(deltaTime);
     window.requestAnimationFrame(gameloop);
 
 }
 
 gameloop();
+}
+
+
+//const deltaTime = clock.getDelta();
+
+// renderer
+
 
 
