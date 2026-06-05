@@ -48,12 +48,10 @@ const kontrole = new OrbitControls(camera, canvas);
 kontrole.enableDamping = true;
 //kontrole.listenToKeyEvents(window);
 
-
 const entityCreator = new EntityCreator();
 const defaultScene = new DefaultScene(scene, camera , kontrole);
 const spaceViewerScene = new SpaceViewerScene();
 let characterController;
-
 
 const scene0 = defaultScene.getScene();
 const scene1 = spaceViewerScene.getScene();
@@ -65,7 +63,13 @@ loader.load('models/Soldier.glb', (gltf) => {
     model.scale.set(100, 100, 100);
 
     model.traverse((object) => {
-        if( object.isMesh )object.castShadow = true;
+        if( object.isMesh ){
+            object.castShadow = true;
+            object.material.metalness = 1.0;
+            object.material.roughness = 0.2;
+            object.material.color.set( 1, 1, 1 );
+			object.material.metalnessMap = object.material.map;
+        }
     });
     const actions = new Map(); 
 
@@ -73,13 +77,6 @@ loader.load('models/Soldier.glb', (gltf) => {
     const animations = gltf.animations.filter(a => a.name != 'TPose');
     const mixer = new THREE.AnimationMixer(model);
 
-   /*  gltfAnimations.filter(a => a.name != 'TPose').forEach((a: THREE.AnimationClip) => {
-        animationsMap.set(a.name, mixer.clipAction(a))
-    })
- */
-    //let map = new Map();
-console.log(gltf.animations);
-console.log(animations);
     const idleAction = mixer.clipAction(animations[0]);
     actions.set('idle', idleAction);
     const walkAction = mixer.clipAction(animations[2]);
@@ -87,9 +84,7 @@ console.log(animations);
     const runAction = mixer.clipAction(animations[1]);
     actions.set('run', runAction);
     
-    console.log(actions);
     characterController = new CharacterController(model, mixer, actions, kontrole, camera, 'idle');
-
 });
 
 const renderer = new THREE.WebGLRenderer({
@@ -180,14 +175,23 @@ function setCamera(){
 
  const keysPressed = [];
 window.addEventListener('keydown', (e) => {
-    if(e.key === 'Shift' && characterController){
+    if(e.key === 'Shift' && characterController  && currentScene === 'default'){
         keysPressed.push(e.key);
         characterController.toggleRun = true;
         console.log(characterController.toggleRun);
+        console.log(keysPressed);
     };
-    if(e.key == 'w' || e.key == 'a' || e.key == 's' || e.key == 'd' && characterController){
-        keysPressed.push(e.key);
-        console.log('walk');
+    if(((e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') 
+        && keysPressed.indexOf(e.key) === -1 ) &&
+     characterController  &&
+      currentScene === 'default'){
+            keysPressed.push(e.key);
+            characterController.toggleWalk = true;
+            console.log(keysPressed);
+            // console.log('walk');
+    };
+     if(e.key === 'Escape'){
+       currentScene = 'default';
     };
 });
 window.addEventListener('keyup', (e) => {
@@ -196,9 +200,10 @@ window.addEventListener('keyup', (e) => {
         characterController.toggleRun = false;
         console.log(characterController.toggleRun);
     };
-     if(e.key == 'w' || e.key == 'a' || e.key == 's' || e.key == 'd' && characterController){
-        keysPressed.splice(keysPressed.indexOf(e.key), 1);
-        console.log('stop');
+    if(e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd'){
+    keysPressed.splice(keysPressed.indexOf(e.key), 1);
+    characterController.toggleWalk = false;
+    console.log(keysPressed);
     };
 });
 

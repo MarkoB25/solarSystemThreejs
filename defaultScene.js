@@ -43,26 +43,24 @@ export class DefaultScene{
     floor.userData.physics = { mass: 0 };
     scene.add( floor );
 
- 
+/* const manager = new THREE.LoadingManager();
+const mtlLoader = new MTLLoader(manager);
+const objectLoader = new OBJLoader();
+const materials = mtlLoader.load('models/space_station/Space Station Scene.mtl', (o) => {
+    objectLoader.setMaterials(o);
+});
+objectLoader.load('models/space_station/Space Station Scene.obj', function (object){
+    object.scale.set(30, 30, 30);
+    scene.add(object);
+});  */
     // ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
     // svetlo iz tacke
-    const svetloIzTacke = new THREE.PointLight(0xe1eb2d, 9000);
+    const svetloIzTacke = new THREE.PointLight(0xffffff, 9000);
     scene.add(svetloIzTacke);
-
-    // reflektor - pravougaono svetlo za odgovarajucim dimenzijama
-    const pravougaonoSvetlo = new THREE.RectAreaLight(0xe3ba05, 2, 30, 30);
-    pravougaonoSvetlo.position.set(0, 20, 0);
-    scene.add(pravougaonoSvetlo);
-    pravougaonoSvetlo.lookAt(0, 0, 0);  
-
-    //drugo svetlo
-    const pravougaonoSvetlo2 = new THREE.RectAreaLight(0xe3ba05, 2, 30, 30);
-    pravougaonoSvetlo2.position.set(0, -20, 0);
-    scene.add(pravougaonoSvetlo2);
-    pravougaonoSvetlo2.lookAt(0, 0, 0);
+    svetloIzTacke.position.y = 100;
    
     return scene;
     }
@@ -71,13 +69,6 @@ export class DefaultScene{
     }
 
 
-/* const manager = new THREE.LoadingManager();
-const mtlLoader = new MTLLoader(manager);
-const materials = await mtlLoader.loadAsync('models/space_station/Space Station Scene.mtl');
-const objectLoader = new OBJLoader();
-objectLoader.setMaterials(materials);
-objectLoader.load('models/space_station/Space Station Scene.obj', function (object){
-scene.add(object);
-}); */
+
 //const spaceStation = await objectLoader.loadAsync('models/space_station/Space Station Scene.obj');
 }
