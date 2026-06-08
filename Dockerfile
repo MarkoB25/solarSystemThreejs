@@ -4,9 +4,9 @@ FROM ubuntu
 
 WORKDIR /app
 
-COPY package*.jsno ./
+COPY package*.json ./
 
-RUN nmp install
+RUN npm install
 
 COPY . .
 
