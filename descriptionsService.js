@@ -1,3 +1,5 @@
+import axios from "axios"
+
 export const descriptions = [ 
     {name:'The Sun', description: 'The Sun is the star at the center of the Solar System. It is a massive, nearly perfect sphere of hot plasma, heated to incandescence by nuclear fusion reactions in its core, radiating the energy from its surface mainly as visible light and infrared radiation with 10% at ultraviolet energies. It is by far the most important source of energy for life on Earth. The Sun has been an object of veneration in many cultures. It has been a central subject for astronomical research since antiquity.'},
     {name:'Mercury', description: 'Mercury is the first planet from the Sun and the smallest in the Solar System. In English, it is named after the ancient Roman god Mercurius, god of commerce and communication, and the messenger of the gods'}, 
@@ -26,6 +28,47 @@ export const descriptions = [
     {name:'Umbriel', description: 'Umbriel, also known as Uranus II, is a natural satellite of the outer planet, Uranus. Umbriel was discovered on October 24, 1851, by the astronomer William Lassel. Umbriel is the third-largest and fourth-most massive of the Uranian moons. Umbriel is the 13th-largest moon in the Solar System and also the 14th-most massive'},
     {name:'Triton', description: 'Triton, also known as Neptune I, is the biggest natural satellite of the outer planet, Neptune. It is the seventh-largest moon in the Solar System. It has a retrograde, inclined orbit around Neptune.[1] Triton was discovered on October 10, 1846 by the astronomer William Lassell. It has a diameter of 2.7 megameters.['},
 ];
+let headers = new Headers();
+
+  headers.append('Content-Type', 'application/json');
+  headers.append('Accept', 'application/json');
+
+  headers.append('Access-Control-Allow-Origin', 'http://localhost:8000');
+  //headers.append('Access-Control-Allow-Credentials', 'true');
+
+  headers.append('GET', 'POST', 'OPTIONS');
+
+  //headers.append('Authorization', 'Basic ' + base64.encode(username + ":" + password));
+
+
+export const descriptions_db = await axios.get("http://127.0.0.1:8000/Descriptions/", {
+    offset: 0,
+    limil: 100,
+    timeout: 2000,
+   
+    }).then((responce) => {
+        console.log(responce.data);
+    }).catch((error) => {
+        console.log(error);
+    }).finally(() => {
+        console.log("Request complete");
+    })
+
+/* axios
+  .get("https://jsonplaceholder.typicode.com/posts", {
+    params: {
+      postId: 5,
+    },
+  })
+  .then((response) => {
+    console.log(response.data);
+  })
+  .catch((error) => {
+    console.error(error);
+  })
+  .finally(() => {
+    console.log("Request completed");
+  }); */
 
 export function getDesc(name) {
     descriptions.forEach(desc => 
