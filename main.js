@@ -179,7 +179,7 @@ window.addEventListener('keydown', (e) => {
         keysPressed.push(e.key);
         characterController.toggleRun = true;
         console.log(characterController.toggleRun);
-        console.log(keysPressed);
+      //  console.log(keysPressed);
     };
     if(((e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') 
         && keysPressed.indexOf(e.key) === -1 ) &&
@@ -187,7 +187,7 @@ window.addEventListener('keydown', (e) => {
       currentScene === 'default'){
             keysPressed.push(e.key);
             characterController.toggleWalk = true;
-            console.log(keysPressed);
+           // console.log(keysPressed);
             // console.log('walk');
     };
      if(e.key === 'Escape'){
@@ -198,12 +198,12 @@ window.addEventListener('keyup', (e) => {
     if(e.key === 'Shift' && characterController){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
         characterController.toggleRun = false;
-        console.log(characterController.toggleRun);
+       // console.log(characterController.toggleRun);
     };
     if(e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd'){
     keysPressed.splice(keysPressed.indexOf(e.key), 1);
     characterController.toggleWalk = false;
-    console.log(keysPressed);
+    //console.log(keysPressed);
     };
 });
 

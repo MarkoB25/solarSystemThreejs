@@ -41,7 +41,7 @@ let headers = new Headers();
   //headers.append('Authorization', 'Basic ' + base64.encode(username + ":" + password));
 
 
-export const descriptions_db = await axios.get("http://127.0.0.1:8000/Descriptions/", {
+/* export const descriptions_db = await axios.get("http://127.0.0.1:8000/Descriptions/", {
     offset: 0,
     limil: 100,
     timeout: 2000,
@@ -52,7 +52,7 @@ export const descriptions_db = await axios.get("http://127.0.0.1:8000/Descriptio
         console.log(error);
     }).finally(() => {
         console.log("Request complete");
-    })
+    }) */
 
 /* axios
   .get("https://jsonplaceholder.typicode.com/posts", {

@@ -41,7 +41,6 @@ export class CharacterController{
     }
 
     update(delta, keysPressed){
-
         let play = '';
         // animations toggle
         if(this.toggleWalk && this.toggleRun){
@@ -69,44 +68,43 @@ export class CharacterController{
                 (this.camera.position.z - this.model.position.z)
             );
             // diagonal movement angle offset
-            let directionOffset = this.directionOffset(keysPressed);
+           let directionOffset = 0 // w
+                if(keysPressed.includes('w')){
+                    if(keysPressed.includes('w') && keysPressed.includes('a')){
+                        directionOffset = Math.PI / 4;
+                    }else if(keysPressed.includes('w') && keysPressed.includes('d'))
+                        directionOffset = -Math.PI / 4;
+                        else directionOffset = 0;
+                }else if(keysPressed.includes('s')){
+                    if(keysPressed.includes('s') && keysPressed.includes('a'))
+                        directionOffset = Math.PI / 4 + Math.PI / 2;
+                    else if(keysPressed.includes('s') && keysPressed.includes('d')){
+                        directionOffset = -Math.PI / 4 - Math.PI / 2;
+                    }else {
+                        directionOffset = Math.PI;
+                    }
+                }else if(keysPressed.includes('a')){
+                    directionOffset = Math.PI / 2
+                }else if(keysPressed.includes('d')){
+                    directionOffset = -Math.PI / 2
+                }        
 
             // rotate character
             this.rotateQuaterion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
             this.model.quaternion.rotateTowards(this.rotateQuaterion, 0.2);
-        }
-    }
-    directionOffset(keysPressed) {
-        var directionOffset = 0 // w
-    if (keysPressed['w']) {
-        directionOffset = Math.PI;      // facing forward
-    } else if (keysPressed['s']) {
-        directionOffset = 0;            // facing backward
-    } else if (keysPressed['a']) {
-        directionOffset = Math.PI / 2;  // facing left
-    } else if (keysPressed['d']) {
-    directionOffset = -Math.PI / 2; // facing right
-    }
-       /*  if (keysPressed['w']) {
-            if (keysPressed['w'] && keysPressed['a']) {
-                directionOffset = Math.PI / 4 // w+a
-            } else if (keysPressed['w'] && keysPressed['d']) {
-                directionOffset = - Math.PI / 4 // w+d
-            }
-        } else if (keysPressed['s']) {
-            if (keysPressed['s'] && keysPressed['a']) {
-                directionOffset = Math.PI / 4 + Math.PI / 2 // s+a
-            } else if (keysPressed['s'] && keysPressed['d']) {
-                directionOffset = -Math.PI / 4 - Math.PI / 2 // s+d
-            } else {
-                directionOffset = Math.PI // s
-            }
-        } else if (keysPressed['a']) {
-            directionOffset = Math.PI / 2 // a
-        } else if (keysPressed['d']) {
-            directionOffset = - Math.PI / 2 // d
-        } */
 
-        return directionOffset
+            this.camera.getWorldDirection(this.walkDirection);
+            this.walkDirection.y = 0;
+            this.walkDirection.normalize();
+            this.walkDirection.applyAxisAngle(this.rotateAngle, directionOffset);
+
+            let velocity = this.currentAction == 'run' ? this.runVelocity : this.walkVelocity;
+
+            let moveX = this.walkDirection.x * velocity * delta;
+            let moveZ = this.walkDirection.z * velocity * delta;
+            this.model.position.x += moveX;
+            this.model.position.z += moveZ;
+            console.log(this.model.position.x);
+        }
     }
 }
