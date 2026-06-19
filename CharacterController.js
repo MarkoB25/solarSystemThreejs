@@ -11,10 +11,12 @@ export class CharacterController{
 
     // constants
     fadeDuration = 0.2;
-    walkVelocity = 5;
-    runVelocity = 2;
+    walkVelocity = 200;
+    runVelocity = 500;
 
-    constructor(model = THREE.Group,
+    // constructor
+    constructor(
+            model = THREE.Group,
             mixer = THREE.AnimationMixer,
             animationActions = new Map(),
             orbitControlls,
@@ -35,11 +37,7 @@ export class CharacterController{
                     }
                 });
     }
-
-    switchToggleRun(){
-        this.toggleRun = !this.toggleRun;
-    }
-
+    // update animations and position
     update(delta, keysPressed){
         let play = '';
         // animations toggle
@@ -61,14 +59,14 @@ export class CharacterController{
             this.currentAction = play;
         }
         this.mixer.update(delta);
-
+        // update movement direction and position if walking or running
         if(this.currentAction == 'walk' || this.currentAction == 'run'){
             let angleYCameraDirection = Math.atan2(
                 (this.camera.position.x - this.model.position.x),
                 (this.camera.position.z - this.model.position.z)
             );
             // diagonal movement angle offset
-           let directionOffset = 0 // w
+            let directionOffset = 0 // w
                 if(keysPressed.includes('w')){
                     if(keysPressed.includes('w') && keysPressed.includes('a')){
                         directionOffset = Math.PI / 4;
@@ -92,19 +90,30 @@ export class CharacterController{
             // rotate character
             this.rotateQuaterion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
             this.model.quaternion.rotateTowards(this.rotateQuaterion, 0.2);
-
+            // calculate direction
             this.camera.getWorldDirection(this.walkDirection);
             this.walkDirection.y = 0;
             this.walkDirection.normalize();
             this.walkDirection.applyAxisAngle(this.rotateAngle, directionOffset);
-
-            let velocity = this.currentAction == 'run' ? this.runVelocity : this.walkVelocity;
-
-            let moveX = this.walkDirection.x * velocity * delta;
-            let moveZ = this.walkDirection.z * velocity * delta;
+            // run/walk velocity
+            const velocity = this.currentAction == 'run' ? this.runVelocity : this.walkVelocity;
+            // move model & camera
+            const moveX = this.walkDirection.x * velocity * delta;
+            const moveZ = this.walkDirection.z * velocity * delta;
             this.model.position.x += moveX;
             this.model.position.z += moveZ;
-            console.log(this.model.position.x);
+            this.updateCameraTarget(moveX, moveZ);
         }
+    }
+    updateCameraTarget(moveX, moveZ){
+        // move camera
+        this.camera.position.x += moveX;
+        this.camera.position.z += moveZ;
+
+        // update camera target
+        this.cameraTarget.x = this.model.position.x;
+        this.cameraTarget.y = this.model.position.y + 1;
+        this.cameraTarget.z = this.model.position.z;
+        this.orbitControlls.target = this.cameraTarget;
     }
 }

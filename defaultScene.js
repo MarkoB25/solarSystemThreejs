@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FBXLoader, GLTFLoader, MTLLoader, OBJLoader } from 'three/examples/jsm/Addons.js';
-import { CharacterController } from './CharacterController';
 
 export class DefaultScene{
-    constructor(scene = THREE.Scene(), 
+    // constructor
+    constructor(
+                scene = THREE.Scene(), 
                 camera = THREE.PerspectiveCamera(),
                 orbitControls = OrbitControls()
             )
@@ -12,11 +13,10 @@ export class DefaultScene{
                         this.scene = scene;
                         this.camera = camera;
                         this.orbitControls = orbitControls;
-                      //  this.characterController;
                     }
+    // creating and returning the scene
     getScene(){
     const scene = this.scene;
-    let characterController = this.characterController;
     
     const wallGeometry = new THREE.PlaneGeometry( 30, 30, 30, 30 );
     const wallMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } );
@@ -25,7 +25,6 @@ export class DefaultScene{
     wall.name = 'firstWall';
     scene.add( wall );
     
-   
     const wallGeometry2 = new THREE.PlaneGeometry( 30, 30, 30, 30 );
     const wallMaterial2 = new THREE.MeshBasicMaterial( { color: 0x0000ff, side: THREE.DoubleSide } );
     const wall2 = new THREE.Mesh( wallGeometry2, wallMaterial2 );
