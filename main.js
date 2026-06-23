@@ -8,6 +8,7 @@ import { DefaultScene } from './defaultScene.js';
 import { SpaceViewerScene } from './spaceViewerScene.js';
 import { RenderTransitionPass } from 'three/examples/jsm/postprocessing/RenderTransitionPass.js';
 import { CharacterController } from './CharacterController.js';
+import { RapierPhysics } from 'three/addons/physics/RapierPhysics.js';
 
 let mixer = new THREE.AnimationMixer(); // initializing animation mixer
 let animations = [];
@@ -27,7 +28,7 @@ scene.background = textureLoader.load('static/stars/stars.jpg');
 
 init();
 
-function init(){
+async function init(){
 // camera
 const camera = new THREE.PerspectiveCamera(
     45,
@@ -45,6 +46,7 @@ const canvasMenu = document.querySelector("canvas.menu");
 // orbit controls
 const orbitControls = new OrbitControls(camera, canvas);
 orbitControls.enableDamping = true;
+
 
 // loading scenes
 const defaultScene = new DefaultScene(scene, camera , orbitControls);
@@ -178,7 +180,7 @@ window.addEventListener('keydown', (e) => {
     if(e.key === 'Shift' && characterController  && currentScene === 'default'){
         keysPressed.push(e.key);
         characterController.toggleRun = true;
-        console.log(characterController.toggleRun);
+       // console.log(characterController.toggleRun);
       //  console.log(keysPressed);
     };
     if(((e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') 

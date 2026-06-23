@@ -33,15 +33,85 @@ export class DefaultScene{
     wall2.name = 'secondWall';
     scene.add( wall2 );
    
-    const floorGeometry = new THREE.BoxGeometry( 1000, 5, 1000 );
-    const floorMaterial = new THREE.MeshStandardMaterial( { color: 0xFFFFFF } );
-    const floor = new THREE.Mesh( floorGeometry, floorMaterial );
-    floor.name = 'floor';
-    floor.receiveShadow = true;
-    floor.position.y = - 0.25;
-    floor.userData.physics = { mass: 0 };
-    scene.add( floor );
+ /*    const loader = new GLTFLoader();
+    loader.load('models/towerBasic.glb', gltf =>{
+        const model = gltf.scene;
+        model.scale.set(70, 70, 70); // setting the scale of our model
 
+        model.traverse((object) => {
+            if( object.isMesh ){
+                object.castShadow = true;
+                object.material.metalness = 0;
+            }
+        });
+        model.position.set(-500, 0, 0);
+        scene.add(model);
+    }); */
+
+    // physics engine
+     import('@dimforge/rapier3d').then(RAPIER => {
+            // Use the RAPIER module here.
+            let gravity = { x: 0.0, y: -9.81, z: 0.0 };
+            let world = new RAPIER.World(gravity);
+    
+            // --- Floor (static) ---
+            const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0))
+            world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.5, 100), floorBody)
+    
+            const floorMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(2000, 1, 2000),
+            new THREE.MeshStandardMaterial({ color: 0x888888 })
+            )
+            floorMesh.position.set(0, -1, 0)
+            scene.add(floorMesh)
+    
+            // --- Box (dynamic, falls with gravity) ---
+            const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 50, 0))
+            world.createCollider(RAPIER.ColliderDesc.cuboid(15, 15, 15), boxBody)
+    
+            const boxMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 30, 30),
+            new THREE.MeshStandardMaterial({ color: 0xff4444 })
+            )
+            scene.add(boxMesh)
+    
+            let bodies = [];
+    
+            let gameLoop = () => {
+            // Step the simulation forward.  
+            world.step();
+    
+            bodies.forEach(body => {
+                let position = body.rigidBody.translation();
+                let rotation = body.rigidBody.rotation();
+    
+                body.threeMesh.position.x = position.x;
+                body.threeMesh.position.y = position.y;
+                body.threeMesh.position.z = position.z;
+    
+                body.threeMesh.setRotationFromQuaternion(
+                    new THREE.Quaternion(
+                        rotation.x,
+                        rotation.y,
+                        rotation.z,
+                        rotation.w
+                    )
+                )
+            });
+            const pos = boxBody.translation()
+            const rot = boxBody.rotation()
+    
+            boxMesh.position.set(pos.x, pos.y, pos.z)
+            boxMesh.quaternion.set(rot.x, rot.y, rot.z, rot.w)
+            setTimeout(gameLoop, 16);
+           /*  let position = rigidBody1.translation();
+            console.log("Rigid-body position: ", position.x, position.y); */
+                };
+    
+            gameLoop();
+    
+        });
+  
 /* const manager = new THREE.LoadingManager();
 const mtlLoader = new MTLLoader(manager);
 const objectLoader = new OBJLoader();
@@ -59,15 +129,13 @@ objectLoader.load('models/space_station/Space Station Scene.obj', function (obje
     // svetlo iz tacke
     const svetloIzTacke = new THREE.PointLight(0xffffff, 9000);
     scene.add(svetloIzTacke);
-    svetloIzTacke.position.y = 100;
+    svetloIzTacke.position.y = 200;
    
     return scene;
     }
     getChildren(){
         return scene.children;
     }
-
-
 
 //const spaceStation = await objectLoader.loadAsync('models/space_station/Space Station Scene.obj');
 }
