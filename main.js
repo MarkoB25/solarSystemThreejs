@@ -9,6 +9,7 @@ import { SpaceViewerScene } from './spaceViewerScene.js';
 import { RenderTransitionPass } from 'three/examples/jsm/postprocessing/RenderTransitionPass.js';
 import { CharacterController } from './CharacterController.js';
 import { RapierPhysics } from 'three/addons/physics/RapierPhysics.js';
+import { RigidBody } from '@dimforge/rapier3d';
 
 let mixer = new THREE.AnimationMixer(); // initializing animation mixer
 let animations = [];
@@ -54,38 +55,109 @@ const spaceViewerScene = new SpaceViewerScene();
 const scene0 = defaultScene.getScene();
 const scene1 = spaceViewerScene.getScene();
 
-// loading the player characterController with the model and animations
+// initializing the player characterController 
 let characterController;
-const loader = new GLTFLoader();
-loader.load('models/Soldier.glb', (gltf) => {
+let world;
 
-    const model = gltf.scene;
-    model.scale.set(100, 100, 100); // setting the scale of our model
+// physics engine
+     import('@dimforge/rapier3d').then(RAPIER => {
+            // Use the RAPIER module here.
+            let gravity = { x: 0.0, y: -9.81, z: 0.0 };
+            world = new RAPIER.World(gravity);
+    
+            // --- Floor (static) ---
+            const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0))
+            world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.5, 100), floorBody)
+    
+            const floorMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(2000, 1, 2000),
+            new THREE.MeshStandardMaterial({ color: 0x888888 })
+            )
+            floorMesh.position.set(0, -1, 0)
+            scene.add(floorMesh)
+    
+            // --- Box (dynamic, falls with gravity) ---
+            const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 50, 0))
+            world.createCollider(RAPIER.ColliderDesc.cuboid(15, 15, 15), boxBody)
+    
+            const boxMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(30, 30, 30),
+            new THREE.MeshStandardMaterial({ color: 0xff4444 })
+            )
+            scene.add(boxMesh)
+    
+            let bodies = [];
+            bodies.push( { rigid: boxBody, mesh: boxMesh } );
+            bodies.push({ rigid: floorBody, mesh: floorMesh });
+// loading the player characterController with the model and animations
+            const loader = new GLTFLoader();
+            loader.load('models/Soldier.glb', (gltf) => {
 
-    model.traverse((object) => {
-        if( object.isMesh ){
-            object.castShadow = true;
-            object.material.metalness = 1.0;
-            object.material.roughness = 0.2;
-            object.material.color.set( 1, 1, 1 );
-			object.material.metalnessMap = object.material.map;
-        }
-    });
-    const actions = new Map(); // map of our animation actions
+                const model = gltf.scene;
+                model.scale.set(100, 100, 100); // setting the scale of our model
 
-    scene.add(model); // adding our model to the scene
-    const animations = gltf.animations.filter(a => a.name != 'TPose');
-    const mixer = new THREE.AnimationMixer(model);
-    // adding the animations to the map
-    const idleAction = mixer.clipAction(animations[0]);
-    actions.set('idle', idleAction);
-    const walkAction = mixer.clipAction(animations[2]);
-    actions.set('walk', walkAction);
-    const runAction = mixer.clipAction(animations[1]);
-    actions.set('run', runAction);
-    // initializing characterController
-    characterController = new CharacterController(model, mixer, actions, orbitControls, camera, 'idle');
-});
+                model.traverse((object) => {
+                    if( object.isMesh ){
+                        object.castShadow = true;
+                        object.material.metalness = 1.0;
+                        object.material.roughness = 0.2;
+                        object.material.color.set( 1, 1, 1 );
+                        object.material.metalnessMap = object.material.map;
+                    }
+                });
+                const actions = new Map(); // map of our animation actions
+
+                scene.add(model); // adding our model to the scene
+                const animations = gltf.animations.filter(a => a.name != 'TPose');
+                const mixer = new THREE.AnimationMixer(model);
+                // adding the animations to the map
+                const idleAction = mixer.clipAction(animations[0]);
+                actions.set('idle', idleAction);
+                const walkAction = mixer.clipAction(animations[2]);
+                actions.set('walk', walkAction);
+                const runAction = mixer.clipAction(animations[1]);
+                actions.set('run', runAction);
+
+            // RIGID BODY
+                let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(-1, 3, 1);
+                let rigidBody = world.createRigidBody(bodyDesc);
+                // proveri kod lika sa CONTROLLER_BODY_RADIUS
+                let dynamicCollider = RAPIER.ColliderDesc.ball(0.28);
+                world.createCollider(dynamicCollider, rigidBody.handle);
+
+                const ray =  new RAPIER.Ray( 
+                { x: 0, y: 0, z: 0 },
+                { x: 0, y: -1, z: 0} 
+                );
+                // initializing characterController
+                characterController = new CharacterController(
+                    model,
+                    mixer,
+                    actions,
+                    orbitControls,
+                    camera, 'idle',
+                    ray,
+                    rigidBody
+                );
+            });
+    
+            let gameLoop = () => {
+            // Step the simulation forward.  
+            world.step();
+                bodies.forEach(body => {
+                const position = body.rigid.translation();
+                const rotation = body.rigid.rotation();
+    
+                body.mesh.position.set(position.x, position.y, position.z);
+                body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+                
+                });
+            setTimeout(gameLoop, 16);
+                };
+    
+            gameLoop();
+    
+        });
 // renderer
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
@@ -235,7 +307,7 @@ const clock = new THREE.Clock();
 const gameloop = () => {
     let mixerUpadateDelta = clock.getDelta();
     if(characterController){
-        characterController.update(mixerUpadateDelta, keysPressed); // azuriranje kontrola za karaktera
+        characterController.update(world ,mixerUpadateDelta, keysPressed); // azuriranje kontrola za karaktera
     }
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
     renderCurrentScene(); // funkcija koja renderuje trenutnu scenu
