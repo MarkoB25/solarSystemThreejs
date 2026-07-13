@@ -4,12 +4,15 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 import { Pane, TabApi } from 'tweakpane';
 import * as descService from './descriptionsService.js';
 import { EffectComposer, FBXLoader, GLTFLoader, MTLLoader, OBJLoader, OutputPass } from 'three/examples/jsm/Addons.js';
-import { DefaultScene } from './defaultScene.js';
-import { SpaceViewerScene } from './spaceViewerScene.js';
+import { DefaultScene } from './Scenes/defaultScene.js';
+import { SpaceViewerScene } from './Scenes/spaceViewerScene.js';
 import { RenderTransitionPass } from 'three/examples/jsm/postprocessing/RenderTransitionPass.js';
-import { CharacterController } from './CharacterController.js';
+import { CharacterController } from './js/CharacterController.js';
 import { RapierPhysics } from 'three/addons/physics/RapierPhysics.js';
 import { RigidBody } from '@dimforge/rapier3d';
+import { SpaceshipScene } from './Scenes/spaceshipScene.js';
+import { warnOnce } from 'three/src/utils.js';
+import { SpaceshipController } from './js/SpaceshipController.js';
 
 let mixer = new THREE.AnimationMixer(); // initializing animation mixer
 let animations = [];
@@ -50,114 +53,163 @@ orbitControls.enableDamping = true;
 
 
 // loading scenes
-const defaultScene = new DefaultScene(scene, camera , orbitControls);
-const spaceViewerScene = new SpaceViewerScene();
-const scene0 = defaultScene.getScene();
-const scene1 = spaceViewerScene.getScene();
+const defaultSceneClass = new DefaultScene(scene, camera , orbitControls);
+const spaceViewerSceneClass = new SpaceViewerScene();
+let spaceshipSceneClass = new SpaceshipScene(camera, orbitControls);
+
+const defScene = defaultSceneClass.getScene();
+const spaceScene = spaceViewerSceneClass.getScene();
+const spaceshipScene = spaceshipSceneClass.getScene();
+let spaceshipController;
+ // getScene is an async function so to access the result(scene) we need to use then
+
 
 // initializing the player characterController 
 let characterController;
 let world;
+let bodies;
+let shipRigidBody;
+//let  = spaceshipSceneClass.spaceshipController;
+ const loader = new GLTFLoader();
+ const gltf = await loader.loadAsync('models/spaceship/scene.gltf');
 
+const shipModel = gltf.scene;
+shipModel.scale.set(10, 10, 10); // setting the scale of our model
+shipModel.rotation.y = Math.PI/2;
+
+shipModel.traverse((object) => {
+    if( object.isMesh ){
+        object.castShadow = true;
+        object.material.metalness = 1.0;
+        object.material.roughness = 0.2;
+        object.material.color.set( 1, 1, 1 );
+        object.material.metalnessMap = object.material.map;
+    }
+});
+   
 // physics engine
-     import('@dimforge/rapier3d').then(RAPIER => {
-            // Use the RAPIER module here.
-            let gravity = { x: 0.0, y: -9.81, z: 0.0 };
-            world = new RAPIER.World(gravity);
-    
-            // --- Floor (static) ---
-            const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0))
-            world.createCollider(RAPIER.ColliderDesc.cuboid(100, 0.5, 100), floorBody)
-    
-            const floorMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(2000, 1, 2000),
-            new THREE.MeshStandardMaterial({ color: 0x888888 })
-            )
-            floorMesh.position.set(0, -1, 0)
-            scene.add(floorMesh)
-    
-            // --- Box (dynamic, falls with gravity) ---
-            const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 50, 0))
-            world.createCollider(RAPIER.ColliderDesc.cuboid(15, 15, 15), boxBody)
-    
-            const boxMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(30, 30, 30),
-            new THREE.MeshStandardMaterial({ color: 0xff4444 })
-            )
-            scene.add(boxMesh)
-    
-            let bodies = [];
-            bodies.push( { rigid: boxBody, mesh: boxMesh } );
-            bodies.push({ rigid: floorBody, mesh: floorMesh });
-// loading the player characterController with the model and animations
-            const loader = new GLTFLoader();
-            loader.load('models/Soldier.glb', (gltf) => {
+    import('@dimforge/rapier3d').then(RAPIER => {
+        // Use the RAPIER module here.
+        let gravity = { x: 0.0, y: -9.81, z: 0.0 };
+        world = new RAPIER.World(gravity);
 
-                const model = gltf.scene;
-                model.scale.set(100, 100, 100); // setting the scale of our model
+        // --- Floor (static) ---
+        const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0));
+        world.createCollider(RAPIER.ColliderDesc.cuboid(1000, 1, 1000).setDensity(5.0), floorBody.handle);
 
-                model.traverse((object) => {
-                    if( object.isMesh ){
-                        object.castShadow = true;
-                        object.material.metalness = 1.0;
-                        object.material.roughness = 0.2;
-                        object.material.color.set( 1, 1, 1 );
-                        object.material.metalnessMap = object.material.map;
-                    }
-                });
-                const actions = new Map(); // map of our animation actions
+        const floorMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2000, 2, 2000),
+        new THREE.MeshStandardMaterial({ color: 0x888888 })
+        )
+        scene.add(floorMesh);  
 
-                scene.add(model); // adding our model to the scene
-                const animations = gltf.animations.filter(a => a.name != 'TPose');
-                const mixer = new THREE.AnimationMixer(model);
-                // adding the animations to the map
-                const idleAction = mixer.clipAction(animations[0]);
-                actions.set('idle', idleAction);
-                const walkAction = mixer.clipAction(animations[2]);
-                actions.set('walk', walkAction);
-                const runAction = mixer.clipAction(animations[1]);
-                actions.set('run', runAction);
+        // --- Box (dynamic, falls with gravity) ---
+        const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(100, 50, 0));
+        console.log();
+        world.createCollider(RAPIER.ColliderDesc.cuboid(25, 25, 25), boxBody);
 
-            // RIGID BODY
-                let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(-1, 3, 1);
-                let rigidBody = world.createRigidBody(bodyDesc);
-                // proveri kod lika sa CONTROLLER_BODY_RADIUS
-                let dynamicCollider = RAPIER.ColliderDesc.ball(0.28);
-                world.createCollider(dynamicCollider, rigidBody.handle);
+        const box = new THREE.Mesh(
+        new THREE.BoxGeometry(50, 50, 50),
+        new THREE.MeshStandardMaterial({ color: 0xff4444 })
+        )
+        scene.add(box);
 
-                const ray =  new RAPIER.Ray( 
-                { x: 0, y: 0, z: 0 },
-                { x: 0, y: -1, z: 0} 
-                );
-                // initializing characterController
-                characterController = new CharacterController(
-                    model,
-                    mixer,
-                    actions,
-                    orbitControls,
-                    camera, 'idle',
-                    ray,
-                    rigidBody
-                );
+        // sphere 
+        const sphereBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(100, 100, 0));
+        world.createCollider(RAPIER.ColliderDesc.ball(30).setDensity(2.0), sphereBody);
+
+        const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(30, 30, 30),
+        new THREE.MeshStandardMaterial({ color: 0xff4444 })
+        )
+        scene.add(sphere);
+
+        // bodies
+        let bodies = [];
+        bodies.push( { rigid: sphereBody, mesh: sphere } );
+        bodies.push( { rigid: boxBody, mesh: box } );
+        bodies.push({ rigid: floorBody, mesh: floorMesh });
+        
+        // loading the player characterController with the model and animations
+       
+        loader.load('models/Soldier.glb', (gltf) => {
+
+            const model = gltf.scene;
+            model.scale.set(100, 100, 100); // setting the scale of our model
+
+            model.traverse((object) => {
+                if( object.isMesh ){
+                    object.castShadow = true;
+                    object.material.metalness = 1.0;
+                    object.material.roughness = 0.2;
+                    object.material.color.set( 1, 1, 1 );
+                    object.material.metalnessMap = object.material.map;
+                }
             });
-    
-            let gameLoop = () => {
-            // Step the simulation forward.  
-            world.step();
-                bodies.forEach(body => {
-                const position = body.rigid.translation();
-                const rotation = body.rigid.rotation();
-    
-                body.mesh.position.set(position.x, position.y, position.z);
-                body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-                
-                });
-            setTimeout(gameLoop, 16);
-                };
-    
-            gameLoop();
-    
+            const actions = new Map(); // map of our animation actions
+
+            scene.add(model); // adding our model to the scene
+            const animations = gltf.animations.filter(a => a.name != 'TPose');
+            const mixer = new THREE.AnimationMixer(model);
+            // adding the animations to the map
+            const idleAction = mixer.clipAction(animations[0]);
+            actions.set('idle', idleAction);
+            const walkAction = mixer.clipAction(animations[2]);
+            actions.set('walk', walkAction);
+            const runAction = mixer.clipAction(animations[1]);
+            actions.set('run', runAction);
+
+        // CHARACTER RIGID BODY
+            let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(-1, 3, 1);
+            let charRigidBody = world.createRigidBody(bodyDesc);
+            // collider
+            let dynamicCollider = RAPIER.ColliderDesc.ball(10);
+            world.createCollider(dynamicCollider, charRigidBody);
+
+            const ray =  new RAPIER.Ray( 
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: -1, z: 0} 
+            );
+            
+            // initializing characterController
+            characterController = new CharacterController(
+                model,
+                mixer,
+                actions,
+                orbitControls,
+                camera,
+                'idle',
+                ray,
+                charRigidBody
+            );
         });
+
+        // loading spaceship
+        let shipDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 0, 0);
+        let shipRigidBody = world.createRigidBody(shipDesc);
+        // collider
+        let shipCollider = RAPIER.ColliderDesc.capsule(10, 20);
+        world.createCollider(shipCollider, shipRigidBody); 
+
+        spaceshipController = new SpaceshipController(shipModel, orbitControls, camera, 'idle', shipRigidBody);
+       
+        let loop = () => {
+        // Step the simulation forward.  
+        world.step();
+            bodies.forEach(body => {
+            const position = body.rigid.translation();
+            const rotation = body.rigid.rotation();
+
+            body.mesh.position.set(position.x, position.y, position.z);
+            body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+            });
+            
+        setTimeout(loop, 16);
+            };
+
+        loop();
+
+    });
 // renderer
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
@@ -177,6 +229,35 @@ function onPointerMove( event ) {
 	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 };
 // function for changing scene after click on wall object
+
+// rendering current scene
+function renderCurrentScene(){
+    if(currentScene == "default"){
+        scene = defScene;
+        if(!scene.background){
+        scene.background = textureLoader.load('static/stars/stars.jpg');
+       }     
+    }
+    if(currentScene == "spaceScene"){
+        // render init
+        scene = spaceScene;
+        
+        if(!scene.background){
+            scene.background = textureLoader.load('static/stars/stars.jpg'); 
+        }  
+       // animate();
+    }
+    if(currentScene == "spaceshipScene"){
+        // render init
+        scene = spaceshipScene;
+        if(!scene.background){
+            scene.background = textureLoader.load('static/stars/stars.jpg'); 
+        } 
+        if(!scene.children.includes(spaceshipController.model)){
+            scene.add(spaceshipController.model);
+        }
+    } 
+}
 function wallIntersect(){
     raycaster.setFromCamera( pointer, camera );
     let objs =  [];
@@ -191,40 +272,18 @@ function wallIntersect(){
 
     if(typeof currentElement === 'object'){
         if(currentElement.object.name === 'firstWall'){
-            currentScene = 'scene1';
+            currentScene = 'spaceScene';
          //   clearScene();
             setCamera();
         }
       
         if(currentElement.object.name === 'secondWall'){
-            currentScene = 'scene2';
+            currentScene = 'spaceshipScene';
             setCamera();
            // clearScene();
         }
     };   
 };
-// rendering current scene
-function renderCurrentScene(){
-    if(currentScene == "default"){
-        scene = scene0;
-        if(!scene.background){
-        scene.background = textureLoader.load('static/stars/stars.jpg');
-       }      
-    }
-    if(currentScene == "scene1"){
-        // render init
-        scene = scene1;
-        
-        if(!scene.background){
-            scene.background = textureLoader.load('static/stars/stars.jpg'); 
-        }  
-       // animate();
-    }
-    if(currentScene == "scene2"){
-        // render init
-        
-    } 
-}
 // function to change camera based on wich scene is active
 function setCamera(){
     
@@ -233,13 +292,13 @@ function setCamera(){
         camera.position.y = 30;
         // render init
     }
-    if(currentScene == "scene1"){
+    if(currentScene == "spaceScene"){
         // render init
         camera.position.z = 300;
         camera.position.y = 30;
     }
-    if(currentScene == "scene2"){
-        camera.position.z = 300;
+    if(currentScene == "spaceshipScene"){
+        camera.position.z = 1000;
         camera.position.y = 30;
     }
     renderer.render( scene, camera );
@@ -249,34 +308,65 @@ function setCamera(){
 const keysPressed = [];
 // keydown events
 window.addEventListener('keydown', (e) => {
-    if(e.key === 'Shift' && characterController  && currentScene === 'default'){
+    if(e.key === 'Shift' && characterController  && currentScene === 'default' && keysPressed.indexOf(e.key) === -1 ){
         keysPressed.push(e.key);
         characterController.toggleRun = true;
        // console.log(characterController.toggleRun);
       //  console.log(keysPressed);
+    }else if(e.key === 'Shift' && spaceshipController  && currentScene === 'spaceshipScene' && keysPressed.indexOf(e.key) === -1 ){
+        keysPressed.push(e.key);
+        spaceshipController.toggleBoost = true;
+        console.log(keysPressed);
     };
-    if(((e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') 
-        && keysPressed.indexOf(e.key) === -1 ) &&
-     characterController  &&
-      currentScene === 'default'){
+    if((
+        (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
+        keysPressed.indexOf(e.key) === -1 ) &&
+        characterController  &&
+        currentScene === 'default'
+    ){
             keysPressed.push(e.key);
             characterController.toggleWalk = true;
-           // console.log(keysPressed);
+            // console.log(keysPressed);
             // console.log('walk');
+    }else if(
+        (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
+        keysPressed.indexOf(e.key) === -1  &&
+        spaceshipController  &&
+        currentScene === 'spaceshipScene'
+    )
+    {
+        keysPressed.push(e.key);
+        spaceshipController.toggleMove = true;
+        console.log(keysPressed);
     };
      if(e.key === 'Escape'){
        currentScene = 'default';
+       setCamera();
     };
 });
 // keyup events
 window.addEventListener('keyup', (e) => {
-    if(e.key === 'Shift' && characterController){
+    if(e.key === 'Shift' && characterController && currentScene === 'default'){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
         characterController.toggleRun = false;
+    }else if(e.key === 'Shift' && spaceshipController && currentScene === 'spaceshipScene'){
+        keysPressed.splice(keysPressed.indexOf(e.key), 1);
+        spaceshipController.toggleBoost = false;
     };
-    if(e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd'){
+    if(
+        (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
+        characterController  &&
+        currentScene === 'default'
+    ){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
         characterController.toggleWalk = false;
+    }else if(
+        (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
+        spaceshipController  &&
+        currentScene === 'spaceshipScene'
+    ){
+        keysPressed.splice(keysPressed.indexOf(e.key), 1);
+        spaceshipController.toggleMove = false;
     };
 });
 // mousemove event
@@ -286,11 +376,11 @@ window.addEventListener( 'click', () => {
     if(currentScene == 'default'){
         wallIntersect();
     }
-    if(currentScene == 'scene1'){
+    if(currentScene == 'spaceScene'){
         //showDesc();
     } 
-    if(currentScene == 'scene2'){
-        wallIntersect();
+    if(currentScene == 'spaceshipScene'){
+      //  wallIntersect();
     }
 } );
 // reseize event
@@ -305,15 +395,19 @@ const clock = new THREE.Clock();
 
 // main gameloop
 const gameloop = () => {
-    let mixerUpadateDelta = clock.getDelta();
-    if(characterController){
-        characterController.update(world ,mixerUpadateDelta, keysPressed); // azuriranje kontrola za karaktera
+    let upadateDelta = clock.getDelta();
+    if(characterController && currentScene == 'default'){
+        characterController.update(world ,upadateDelta, keysPressed); // azuriranje kontrola za karaktera
+    }else if(spaceshipController && currentScene == 'spaceshipScene'){
+        spaceshipController.update(upadateDelta, keysPressed);
+       // console.log('spaceee') // azuriranje kontrola za karaktera
     }
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
     renderCurrentScene(); // funkcija koja renderuje trenutnu scenu
     window.requestAnimationFrame(gameloop);
     domRenderer.render(scene, camera);
     renderer.render(scene, camera);
+   //console.log(spaceshipController)
 }
 // calling the main loop
 gameloop();
