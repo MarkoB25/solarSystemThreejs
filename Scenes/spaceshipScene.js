@@ -28,6 +28,7 @@ export class SpaceshipScene{
         mercury.mesh.material.map = this.textureLoader.load('static/mercury/mercurymap.jpg');
         mercury.mesh.material.bumpMap = this.textureLoader.load('static/mercury/mercurybump.jpg');
         mercury.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        mercury.object.position.x = -500;
 
     scene.add(mercury.object);
 
@@ -36,7 +37,7 @@ export class SpaceshipScene{
         new THREE.BoxGeometry(2000, 5, 2000),
         new THREE.MeshStandardMaterial({ color: 0x888888 })
         )
-        floorMesh.position.y = -100;
+        floorMesh.position.y = -1000;
         scene.add(floorMesh);  
     // ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);

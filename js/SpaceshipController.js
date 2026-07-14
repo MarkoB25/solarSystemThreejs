@@ -85,7 +85,7 @@ export class SpaceshipController{
             this.walkDirection.x = this.walkDirection.x * velocity * delta;
             this.walkDirection.z = this.walkDirection.z * velocity * delta;
 
-            console.log(this.rigidBody);
+           // console.log(this.rigidBody);
 
             let cameraPositionOffset = this.camera.position.sub(this.model.position);
 
@@ -104,8 +104,8 @@ export class SpaceshipController{
             this.model.position.x += moveX;
             this.model.position.z += moveZ;
             this.updateCameraTarget(moveX, moveZ); */
-            console.log( this.model.position);
-            console.log(this.rigidBody.translation());
+          /*   console.log( this.model.position);
+            console.log(this.rigidBody.translation()); */
         }
         //console.log(this.model.position);
     }

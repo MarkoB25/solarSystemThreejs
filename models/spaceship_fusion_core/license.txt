@@ -1,0 +1,11 @@
+Model Information:
+* title:	Spaceship with fusion core
+* source:	https://sketchfab.com/3d-models/spaceship-with-fusion-core-45aebadf02474c77a3d7069c3176e442
+* author:	ricksticky (https://sketchfab.com/ricksticky)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Spaceship with fusion core" (https://sketchfab.com/3d-models/spaceship-with-fusion-core-45aebadf02474c77a3d7069c3176e442) by ricksticky (https://sketchfab.com/ricksticky) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
