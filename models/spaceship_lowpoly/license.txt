@@ -1,0 +1,11 @@
+Model Information:
+* title:	Spaceship
+* source:	https://sketchfab.com/3d-models/spaceship-32f37c2678474a6298f632fcebbb4ddf
+* author:	RafaelVLuciano (https://sketchfab.com/RafaelVLuciano)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Spaceship" (https://sketchfab.com/3d-models/spaceship-32f37c2678474a6298f632fcebbb4ddf) by RafaelVLuciano (https://sketchfab.com/RafaelVLuciano) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

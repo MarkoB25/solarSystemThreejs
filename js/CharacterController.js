@@ -12,8 +12,8 @@ export class CharacterController{
     
     // constants
     fadeDuration = 0.2;
-    walkVelocity = 200;
-    runVelocity = 500;
+    walkVelocity = 300;
+    runVelocity = 600;
 
     // constructor
     constructor(
@@ -63,7 +63,7 @@ export class CharacterController{
 
             this.currentAction = play;
         }
-        this.mixer.update(delta);
+
         // update movement direction and position if walking or running
         if(this.currentAction == 'walk' || this.currentAction == 'run'){
             let angleYCameraDirection = Math.atan2(

@@ -1,0 +1,11 @@
+Model Information:
+* title:	The Saturn Orbiter
+* source:	https://sketchfab.com/3d-models/the-saturn-orbiter-f73f8788af1846f79e2d71d989a2df85
+* author:	TWISTEDY (https://sketchfab.com/adisenna1718)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "The Saturn Orbiter" (https://sketchfab.com/3d-models/the-saturn-orbiter-f73f8788af1846f79e2d71d989a2df85) by TWISTEDY (https://sketchfab.com/adisenna1718) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

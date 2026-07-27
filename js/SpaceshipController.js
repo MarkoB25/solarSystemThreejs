@@ -16,8 +16,9 @@ export class SpaceshipController{
             orbitControlls,
             camera = THREE.Camera,
             currentAction,
-           // ray,
-            rigidBody
+            ray,
+            rigidBody,
+            helper
         ){
                 this.model = model;
                 this.orbitControlls = orbitControlls;
@@ -25,11 +26,14 @@ export class SpaceshipController{
                 this.currentAction = currentAction;
                 this.toggleMove = false;
                 this.toggleBoost = false;
-                //this.ray = ray;
+                this.ray = ray;
                 this.rigidBody = rigidBody;
+                this.helper = helper;
+                this.isColliding = false;
+                this.lastSafePosition = {x: 0, y: 0, z: 0};
     }
       // update animations and position
-    async update(delta, keysPressed){
+    update(world, delta, keysPressed){
         let play = '';
         // animations toggle
         if(this.toggleBoost && this.toggleMove){
@@ -49,7 +53,6 @@ export class SpaceshipController{
                 (this.camera.position.z - this.model.position.z)
             );
             // diagonal movement angle offset
-          
             let directionOffset = 0; // w
                 if(keysPressed.includes('w')){
                     if(keysPressed.includes('w') && keysPressed.includes('a')){
@@ -72,7 +75,7 @@ export class SpaceshipController{
                 }        
                
             // rotate character
-            this.rotateQuaterion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset + Math.PI/2);
+            this.rotateQuaterion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
             this.model.quaternion.rotateTowards(this.rotateQuaterion, 0.2);
             // calculate direction
             this.camera.getWorldDirection(this.walkDirection);
@@ -80,41 +83,72 @@ export class SpaceshipController{
             this.walkDirection.normalize();
             this.walkDirection.applyAxisAngle(this.rotateAngle, directionOffset);
             // run/walk velocity
-            const velocity = this.currentAction == 'boost' ? this.boostVelocity : this.baseVelocity;      
+            const velocity = this.currentAction == 'boost' ? this.boostVelocity : this.baseVelocity;   
+            
+            let translation = this.rigidBody.translation();
+
+            if(translation.y < -1){
+                this.rigidBody.setNextKinematicTranslation({
+                    x: 0,
+                    y: 10,
+                    z: 0
+                });
+            }else{
+                this.ray.origin.x = translation.x;
+                this.ray.origin.y = translation.y;
+                this.ray.origin.z = translation.z;
+
+                let hit = world.castRay(this.ray, 0.5, true, 0xfffffffff);
+                if (hit) {
+                    const point = this.ray.pointAt(hit.toi);
+                    let diff = translation.y - ( point.y + 0.28);
+                    if (diff < 0.0) {
+                        //this.storedFall = 0;
+                        this.walkDirection.y = this.lerp(0, Math.abs(diff), 0.5);
+                    }
+                }
+            }
+
+            let cameraPositionOffset = this.camera.position.sub(this.model.position);
 
             this.walkDirection.x = this.walkDirection.x * velocity * delta;
             this.walkDirection.z = this.walkDirection.z * velocity * delta;
 
-           // console.log(this.rigidBody);
-
-            let cameraPositionOffset = this.camera.position.sub(this.model.position);
-
-            let translation = this.rigidBody.translation();
-            
-            this.rigidBody.setNextKinematicTranslation({
+            const desiredPosition = {
                 x: translation.x + this.walkDirection.x,
                 y: translation.y + this.walkDirection.y,
                 z: translation.z + this.walkDirection.z
-            });                
-            this.model.position.set(translation.x, translation.y, translation.z);
-            this.updateCameraTarget(cameraPositionOffset);    
-            // move model & camera
-          /*   const moveX = this.walkDirection.x * velocity * delta;
-            const moveZ = this.walkDirection.z * velocity * delta;
-            this.model.position.x += moveX;
-            this.model.position.z += moveZ;
-            this.updateCameraTarget(moveX, moveZ); */
-          /*   console.log( this.model.position);
-            console.log(this.rigidBody.translation()); */
+            };                
+            
+           /*  console.log('position:' ,this.model.position);
+            console.log('translation:', this.rigidBody.translation()) */;
+            
+            let finalPosition;
+
+            if (this.isColliding) {
+            // ne dozvoli dalje pomeranje u pravcu sudara
+            // najjednostavnije: vrati na poslednju bezbednu poziciju
+            this.rigidBody.setNextKinematicTranslation(this.lastSafePosition);
+            this.model.position.set(this.lastSafePosition.x, this.lastSafePosition.y, this.lastSafePosition.z);
+            this.helper.position.set(this.lastSafePosition.x, this.lastSafePosition.y, this.lastSafePosition.z);
+            this.helper.quaternion.copy(this.model.quaternion);
+            finalPosition = this.lastSafePosition;
+        } else {
+            this.rigidBody.setNextKinematicTranslation(desiredPosition);
+            this.model.position.set(desiredPosition.x, desiredPosition.y, desiredPosition.z);
+            this.helper.position.set(desiredPosition.x, desiredPosition.y, desiredPosition.z);
+            this.helper.quaternion.copy(this.model.quaternion);
+            this.lastSafePosition = { x: desiredPosition.x, y: desiredPosition.y, z: desiredPosition.z}; // čuvaj kao bezbednu
+            finalPosition = desiredPosition;
+            } 
+            this.updateCameraTarget(cameraPositionOffset, finalPosition);
         }
-        //console.log(this.model.position);
+        
     }
- 
 
-
-    updateCameraTarget(offset){
+    updateCameraTarget(offset, rigidTranslation){
         // move camera
-        let rigidTranslation = this.rigidBody.translation();
+        //let rigidTranslation = this.rigidBody.translation();
         // update camera target
         this.camera.position.x = rigidTranslation.x + offset.x;
         this.camera.position.y = rigidTranslation.y + offset.y;
@@ -131,5 +165,13 @@ export class SpaceshipController{
         return result
 
     };
+    onCollisionStart() {
+        this.isColliding = true;
+        console.log('COLLISION START');
+    }
 
+    onCollisionEnd() {
+        this.isColliding = false;
+        console.log('COLLISION END');
+    }
 }
