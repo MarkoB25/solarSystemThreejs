@@ -172,16 +172,16 @@ export class DefaultScene{
 
 setColliderEnabled(rigidBody, enabled) {
     if (!rigidBody){ 
-        console.log('rigi body not right')
+        //console.log('rigi body not right')
         return;
         }
     const numColliders = rigidBody.numColliders();
-    console.log('rigidBody ima', numColliders, 'collidera, setujem enabled:', enabled);
+    //console.log('rigidBody ima', numColliders, 'collidera, setujem enabled:', enabled);
     for (let i = 0; i < numColliders; i++) {
        const collider =  rigidBody.collider(i);
-        console.log('collider:', collider, 'pre setEnabled');
+        //console.log('collider:', collider, 'pre setEnabled');
         collider.setEnabled(enabled);
-        console.log('posle setEnabled, collider.isEnabled():', collider.isEnabled ? collider.isEnabled() : 'nema isEnabled metodu')
+        //console.log('posle setEnabled, collider.isEnabled():', collider.isEnabled ? collider.isEnabled() : 'nema isEnabled metodu')
         }
     }
 disablePhysics(world) {

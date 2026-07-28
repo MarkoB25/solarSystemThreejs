@@ -29,7 +29,8 @@ export class SpaceshipController{
                 this.ray = ray;
                 this.rigidBody = rigidBody;
                 this.helper = helper;
-                this.isColliding = false;
+                this.isCollidingFixed = false;
+                this.IsCollidingTeleport = false;
                 this.lastSafePosition = {x: 0, y: 0, z: 0};
     }
       // update animations and position
@@ -119,30 +120,55 @@ export class SpaceshipController{
                 y: translation.y + this.walkDirection.y,
                 z: translation.z + this.walkDirection.z
             };                
-            
-           /*  console.log('position:' ,this.model.position);
-            console.log('translation:', this.rigidBody.translation()) */;
-            
-            let finalPosition;
 
-            if (this.isColliding) {
-            // ne dozvoli dalje pomeranje u pravcu sudara
-            // najjednostavnije: vrati na poslednju bezbednu poziciju
-            this.rigidBody.setNextKinematicTranslation(this.lastSafePosition);
-            this.model.position.set(this.lastSafePosition.x, this.lastSafePosition.y, this.lastSafePosition.z);
-            this.helper.position.set(this.lastSafePosition.x, this.lastSafePosition.y, this.lastSafePosition.z);
-            this.helper.quaternion.copy(this.model.quaternion);
-            finalPosition = this.lastSafePosition;
-        } else {
-            this.rigidBody.setNextKinematicTranslation(desiredPosition);
-            this.model.position.set(desiredPosition.x, desiredPosition.y, desiredPosition.z);
-            this.helper.position.set(desiredPosition.x, desiredPosition.y, desiredPosition.z);
-            this.helper.quaternion.copy(this.model.quaternion);
-            this.lastSafePosition = { x: desiredPosition.x, y: desiredPosition.y, z: desiredPosition.z}; // čuvaj kao bezbednu
-            finalPosition = desiredPosition;
-            } 
-            this.updateCameraTarget(cameraPositionOffset, finalPosition);
-        }
+            let finalPosition;
+        
+            if (this.isCollidingFixed) {
+                        // dozvoli pomeraj SAMO ako se time smanjuje penetracija (tj. igrač pokušava da se izvuče)
+                const stationPos = { x: 500, y: -150, z: 0 }; // ista pozicija kao station
+
+                const currentDist = Math.sqrt(
+                    (translation.x - stationPos.x) ** 2 +
+                    (translation.y - stationPos.y) ** 2 +
+                    (translation.z - stationPos.z) ** 2
+                );
+                const desiredDist = Math.sqrt(
+                    (desiredPosition.x - stationPos.x) ** 2 +
+                    (desiredPosition.y - stationPos.y) ** 2 +
+                    (desiredPosition.z - stationPos.z) ** 2
+                );
+
+                if (desiredDist > currentDist) {
+                    // igrač se udaljava od stanice — dozvoli
+                    finalPosition = desiredPosition;
+                } else {
+                    // igrač i dalje gura ka stanici — blokiraj
+                    finalPosition = { x: translation.x, y: translation.y, z: translation.z };
+                }
+                } else {
+                    finalPosition = desiredPosition;
+                }
+            if(this.IsCollidingTeleport){
+                
+                const newPosition = { x: 1000, y: 0, z: 1000 }; 
+                
+                this.rigidBody.setNextKinematicTranslation(newPosition);
+                this.model.position.set(newPosition.x, newPosition.y, newPosition.z);
+                this.helper.position.set(newPosition.x, newPosition.y, newPosition.z);
+                let cameraPositionOffset = this.camera.position.sub(this.model.position);
+console.log(this.model.position)
+                this.updateCameraTarget(cameraPositionOffset, newPosition);
+                return;
+            }
+
+console.log(this.model.position)
+                this.rigidBody.setNextKinematicTranslation(finalPosition);
+                this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
+                this.helper.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
+                this.lastSafePosition = { x: finalPosition.x, y: finalPosition.y, z: finalPosition.z };
+                //console.log('time_of_impact:', shapeCastResult ? shapeCastResult.time_of_impact : 'nema rezultata');
+                this.updateCameraTarget(cameraPositionOffset, finalPosition);
+            }
         
     }
 
@@ -166,12 +192,21 @@ export class SpaceshipController{
 
     };
     onCollisionStart() {
-        this.isColliding = true;
+        this.isCollidingFixed = true;
         console.log('COLLISION START');
     }
 
     onCollisionEnd() {
-        this.isColliding = false;
+        this.isCollidingFixed = false;
         console.log('COLLISION END');
+    }
+    onCollisionStartTeleport() {
+        this.IsCollidingTeleport = true;
+        console.log('COLLISION START SHOULD TELEPORT');
+    }
+
+    onCollisionEndTeleport() {
+        this.IsCollidingTeleport = false;
+        console.log('COLLISION END TELEPORTED');
     }
 }

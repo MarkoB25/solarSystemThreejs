@@ -161,9 +161,9 @@ function wallIntersect(){
                 showLoadingScreen();
                 spaceshipSceneClass.onLoadProgress = updateLoadingProgress;
                 spaceshipSceneClass.load();
-                spaceshipSceneClass.enablePhysics(world);
                 spaceshipSceneLoaded = true;
             }
+            spaceshipSceneClass.enablePhysics(world);
             scene = spaceshipSceneClass.getScene();
         
             if(!scene.background){
@@ -295,6 +295,7 @@ const clock = new THREE.Clock();
 
 // main gameloop
 const gameloop = () => {
+    // flag for creating cilliders, if false colliders are created
     let isCreatingColliders = spaceshipSceneClass.getthisIsCreatingColliders();
     upadateDelta = clock.getDelta();
     //console.log(isCreatingColliders)
@@ -306,7 +307,6 @@ if(world){
         spaceshipSceneClass.handleCollision(handle1, handle2, started);
         });
     }
-  
     //console.log(eventQueue);
 /* world.colliders.forEach(c => {
     console.log('handle:', c.handle, 'shape:', c.shape.type);
@@ -334,23 +334,12 @@ if(world){
         body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
         });
     }
-
 }
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
     window.requestAnimationFrame(gameloop);
     domRenderer.render(scene, camera);
     renderer.render(scene, camera);
 }
-
-window.testCollision = () => {
-    const controller = spaceshipSceneClass.getSpaceshipController();
-    if (controller) {
-        controller.rigidBody.setNextKinematicTranslation({ x: 500, y: -150, z: 0 });
-        console.log('Brod nasilno postavljen na poziciju stanice');
-    } else {
-        console.log('spaceshipController još ne postoji!');
-    }
-};
 // calling the main loop
 gameloop();
 }
