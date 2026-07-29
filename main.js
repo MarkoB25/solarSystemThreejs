@@ -40,7 +40,7 @@ function hideLoadingScreen() {
 function updateLoadingProgress(loaded, total) {
     const percent = Math.round((loaded / total) * 100);
     loadingBar.style.width = percent + '%';
-    loadingText.textContent = `Učitavanje... ${percent}%`;
+    loadingText.textContent = `Progress... ${percent}%`;
     if (loaded >= total) {
         hideLoadingScreen();
     }
@@ -107,10 +107,6 @@ defaultSceneClass.load();
 defaultSceneClass.enablePhysics(world);
 scene = defaultSceneClass.getScene();
 
-// scene flags
-let spaceshipSceneLoaded = false;
-
-
 // renderer
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
@@ -145,6 +141,15 @@ function wallIntersect(){
     if(typeof currentElement === 'object'){
         if(currentElement.object.name === 'firstWall'){
             currentScene = spaceViewerSceneFlag;
+            let isLoaded = spaceViewerSceneClass.getIsLoaded();
+
+            if(!isLoaded){
+                showLoadingScreen();
+                spaceViewerSceneClass.onLoadProgress = updateLoadingProgress;
+                scene = spaceViewerSceneClass.load();
+
+            }
+
             scene = spaceViewerSceneClass.getScene();
         
             if(!scene.background){
@@ -156,12 +161,12 @@ function wallIntersect(){
         if(currentElement.object.name === 'secondWall'){
             currentScene = spaceshipSceneFlag;
             defaultSceneClass.disablePhysics(world);
+            let isLoaded = spaceshipSceneClass.getIsLoaded();
 
-            if(!spaceshipSceneLoaded){
+            if(!isLoaded){
                 showLoadingScreen();
                 spaceshipSceneClass.onLoadProgress = updateLoadingProgress;
                 spaceshipSceneClass.load();
-                spaceshipSceneLoaded = true;
             }
             spaceshipSceneClass.enablePhysics(world);
             scene = spaceshipSceneClass.getScene();
@@ -178,18 +183,18 @@ function wallIntersect(){
 function setCamera(){
     
     if(currentScene === defaulSceneFlag){
-        camera.position.z = 50;
+        camera.position.x = defaultSceneClass.characterController.model.position.x; 
         camera.position.y = 30;
-        // render init
+        camera.position.z = 300;
     }
     if(currentScene === spaceViewerSceneFlag){
-        // render init
-        camera.position.z = 300;
+        camera.position.x = 50;
         camera.position.y = 30;
+        camera.position.z = 300;
     }
     if(currentScene === spaceshipSceneFlag){
-        camera.position.z = 1000;
         camera.position.y = 30;
+        camera.position.z = 1000;
     }
     renderer.render( scene, camera );
 }
@@ -304,7 +309,13 @@ if(world){
         world.step(eventQueue);
 
         eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-        spaceshipSceneClass.handleCollision(handle1, handle2, started);
+            if(currentScene == defaulSceneFlag){
+                defaultSceneClass.handleCollision(handle1, handle2, started);
+            }
+            if(currentScene == spaceshipSceneFlag){
+                spaceshipSceneClass.handleCollision(handle1, handle2, started);
+            }
+        
         });
     }
     //console.log(eventQueue);
@@ -335,6 +346,16 @@ if(world){
         });
     }
 }
+    if(currentScene == spaceViewerSceneFlag){
+        const planetGroup = spaceViewerSceneClass.getPlanets();
+        const naturalSatellites = spaceViewerSceneClass.getNaturalSatellites();
+        const sun = spaceViewerSceneClass.getSun();
+        if(planetGroup){
+            spaceViewerSceneClass.animate(planetGroup, naturalSatellites, sun);
+        }
+        
+    }
+
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
     window.requestAnimationFrame(gameloop);
     domRenderer.render(scene, camera);

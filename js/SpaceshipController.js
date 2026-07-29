@@ -31,7 +31,6 @@ export class SpaceshipController{
                 this.helper = helper;
                 this.isCollidingFixed = false;
                 this.IsCollidingTeleport = false;
-                this.lastSafePosition = {x: 0, y: 0, z: 0};
     }
       // update animations and position
     update(world, delta, keysPressed){
@@ -88,28 +87,6 @@ export class SpaceshipController{
             
             let translation = this.rigidBody.translation();
 
-            if(translation.y < -1){
-                this.rigidBody.setNextKinematicTranslation({
-                    x: 0,
-                    y: 10,
-                    z: 0
-                });
-            }else{
-                this.ray.origin.x = translation.x;
-                this.ray.origin.y = translation.y;
-                this.ray.origin.z = translation.z;
-
-                let hit = world.castRay(this.ray, 0.5, true, 0xfffffffff);
-                if (hit) {
-                    const point = this.ray.pointAt(hit.toi);
-                    let diff = translation.y - ( point.y + 0.28);
-                    if (diff < 0.0) {
-                        //this.storedFall = 0;
-                        this.walkDirection.y = this.lerp(0, Math.abs(diff), 0.5);
-                    }
-                }
-            }
-
             let cameraPositionOffset = this.camera.position.sub(this.model.position);
 
             this.walkDirection.x = this.walkDirection.x * velocity * delta;
@@ -156,17 +133,16 @@ export class SpaceshipController{
                 this.model.position.set(newPosition.x, newPosition.y, newPosition.z);
                 this.helper.position.set(newPosition.x, newPosition.y, newPosition.z);
                 let cameraPositionOffset = this.camera.position.sub(this.model.position);
-console.log(this.model.position)
                 this.updateCameraTarget(cameraPositionOffset, newPosition);
                 return;
             }
 
-console.log(this.model.position)
+                console.log(this.model.position)
+                
                 this.rigidBody.setNextKinematicTranslation(finalPosition);
                 this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
                 this.helper.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
-                this.lastSafePosition = { x: finalPosition.x, y: finalPosition.y, z: finalPosition.z };
-                //console.log('time_of_impact:', shapeCastResult ? shapeCastResult.time_of_impact : 'nema rezultata');
+                
                 this.updateCameraTarget(cameraPositionOffset, finalPosition);
             }
         
@@ -186,11 +162,6 @@ console.log(this.model.position)
         this.cameraTarget.z = rigidTranslation.z
         this.orbitControlls.target = this.cameraTarget
     }
-    lerp(x, y, a){
-        let result =  x * (1 - a) + y * a;
-        return result
-
-    };
     onCollisionStart() {
         this.isCollidingFixed = true;
         console.log('COLLISION START');

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Transformers Alliance Space Bridge
+* source:	https://sketchfab.com/3d-models/transformers-alliance-space-bridge-28d9d78cf1bd490b8b9472a7eca8400b
+* author:	OrangeSauceu (https://sketchfab.com/orangesauceu)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Transformers Alliance Space Bridge" (https://sketchfab.com/3d-models/transformers-alliance-space-bridge-28d9d78cf1bd490b8b9472a7eca8400b) by OrangeSauceu (https://sketchfab.com/orangesauceu) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

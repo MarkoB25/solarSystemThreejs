@@ -27,15 +27,12 @@ export class SpaceshipScene{
         // onLoadProgress is a callback we get from main js
         this.onLoadProgress = null;
         this.loadedAssets = 0;
-        this.totalAssests = 4;
+        this.totalAssests = 5;
+        this.isLoaded = false;
     }
     // creating and returning the scene
     load(){
     const scene = this.scene;
-
-    let stationMixer; 
-    let spaceshipMixer;
-    let blackHoleMixer;
 
 // --- physics context for rapier physics ---
     this.physicsContext.onReady((RAPIER, world, eventQueue) => {
@@ -89,7 +86,7 @@ export class SpaceshipScene{
             }
         });
         const animations = gltf.animations;
-        let spaceshipMixer = new THREE.AnimationMixer(model);
+        const spaceshipMixer = new THREE.AnimationMixer(model);
         this.mixers.push(spaceshipMixer);
         const animationLoop = spaceshipMixer.clipAction(animations[0]);
 
@@ -129,109 +126,158 @@ export class SpaceshipScene{
         this.reportProgress();
     });
 
-     // SPACE STATION
-            // Triangles: 5.4k Vertices: 3.1k
+    // SPACE STATION
+        // Triangles: 5.4k Vertices: 3.1k
+
+    this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
+
+        const stationModel = gltf.scene;
+        stationModel.scale.set(100, 100, 100); // setting the scale of our model
+
+        stationModel.traverse((object) => {
+            if( object.isMesh ){
+                object.castShadow = true;
+                object.material.metalness = 1.0;
+                object.material.roughness = 0.2;
+                object.material.color.set( 1, 1, 1 );
+                object.material.metalnessMap = object.material.map;
+            }
+        });
+        const actions = new Map(); // map of our animation actions
+
+        const stationPos = { x: 500, y: -150, z: 0 };
+        //scene.add(stationModel); // adding our model to the scene
+        const animations = gltf.animations;
+        const stationMixer = new THREE.AnimationMixer(stationModel);
+        this.mixers.push(stationMixer);
+        const animationLoop = stationMixer.clipAction(animations[0]);
+        animationLoop.play();  
+        
+        // 1. prvo pozicioniraj model TAMO gde treba da bude
+        stationModel.position.set(stationPos.x, stationPos.y, stationPos.z);
+        scene.add(stationModel);
+        stationModel.updateMatrixWorld(true);
+
+        // 2. TEK SAD meri — ovo meri stvarni world-space bounding box na finalnoj poziciji
+        const box = new THREE.Box3().setFromObject(stationModel);
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+
+        this.isCreatingColliders = true;
+        // 3. rigid body ide na IZMERENI centar (koji sad odražava stvarnu poziciju modela + pivot offset)
+        let stationDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+        let stationRigidBody = world.createRigidBody(stationDesc);
+
+        let stationCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2)
+            .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+            .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+        let stationColliderHandle = world.createCollider(stationCollider, stationRigidBody);
+        this.colliderTags.set(stationColliderHandle.handle, 'station');
+
+        const helper = new THREE.BoxHelper(stationModel, 0xff0000);
+        scene.add(helper);
+
+        this.fixedBodies.push({rigid: stationRigidBody, mesh: stationModel});
+        this.isCreatingColliders = false;
+        this.reportProgress();
+    });
+    // BLACK HOLE SUN
+        // Triangles: 10.3k Vertices: 5.4k
+        this.loader.load('models/black_hole/scene.gltf', gltf => {
+            const blackHoleModel = gltf.scene;
+            blackHoleModel.scale.set(100, 100, 100); // setting the scale of our model
+            blackHoleModel.position.set(-700, 0, -400);
     
-        this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
-
-            const stationModel = gltf.scene;
-            stationModel.scale.set(100, 100, 100); // setting the scale of our model
-
-            stationModel.traverse((object) => {
+            blackHoleModel.traverse((object) => {
                 if( object.isMesh ){
                     object.castShadow = true;
-                    object.material.metalness = 1.0;
+                    /* object.material.metalness = 1.0;
                     object.material.roughness = 0.2;
                     object.material.color.set( 1, 1, 1 );
-                    object.material.metalnessMap = object.material.map;
+                    object.material.metalnessMap = object.material.map; */
                 }
             });
-            const actions = new Map(); // map of our animation actions
-
-            const stationPos = { x: 500, y: -150, z: 0 };
-            //scene.add(stationModel); // adding our model to the scene
             const animations = gltf.animations;
-            stationMixer = new THREE.AnimationMixer(stationModel);
-            this.mixers.push(stationMixer);
-            const animationLoop = stationMixer.clipAction(animations[0]);
-            animationLoop.play();  
-            
-            // 1. prvo pozicioniraj model TAMO gde treba da bude
-            stationModel.position.set(stationPos.x, stationPos.y, stationPos.z);
-            scene.add(stationModel);
-            stationModel.updateMatrixWorld(true);
+            const blackHoleMixer = new THREE.AnimationMixer(blackHoleModel);
+            this.mixers.push(blackHoleMixer);
+            const animationLoop = blackHoleMixer.clipAction(animations[0]);
+            animationLoop.play();
+            scene.add(blackHoleModel);
 
-            // 2. TEK SAD meri — ovo meri stvarni world-space bounding box na finalnoj poziciji
-            const box = new THREE.Box3().setFromObject(stationModel);
+            const box = new THREE.Box3().setFromObject(blackHoleModel);
             const center = new THREE.Vector3();
             const size = new THREE.Vector3();
             box.getCenter(center);
             box.getSize(size);
 
             this.isCreatingColliders = true;
-            // 3. rigid body ide na IZMERENI centar (koji sad odražava stvarnu poziciju modela + pivot offset)
-            let stationDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-            let stationRigidBody = world.createRigidBody(stationDesc);
+            let blackHoleDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+            let blackHoleRigidBody = world.createRigidBody(blackHoleDesc);
 
-            let stationCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2)
+            let blackHoleCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
                 .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
                 .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-            let stationColliderHandle = world.createCollider(stationCollider, stationRigidBody);
-            this.colliderTags.set(stationColliderHandle.handle, 'station');
-
-            const helper = new THREE.BoxHelper(stationModel, 0xff0000);
+            let blackHoleColliderHandle = world.createCollider(blackHoleCollider, blackHoleRigidBody);
+            this.colliderTags.set(blackHoleColliderHandle.handle, 'blackHole');
+        
+            const helper = new THREE.BoxHelper(blackHoleModel, 0xff0000);
             scene.add(helper);
 
-            this.fixedBodies.push({rigid: stationRigidBody, mesh: stationModel});
+            this.fixedBodies.push({rigid: blackHoleRigidBody, mesh: blackHoleModel});
             this.isCreatingColliders = false;
             this.reportProgress();
-        });
-        // BLACK HOLE SUN
-            this.loader.load('models/black_hole/scene.gltf', gltf => {
-                const blackHoleModel = gltf.scene;
-                blackHoleModel.scale.set(100, 100, 100); // setting the scale of our model
-                blackHoleModel.position.set(-700, 0, -400);
+        });    
+    // SPACE GATE
+        // Triangles: 5.5k Vertices: 3.1k
+        this.loader.load('models/space_gate/scene.gltf', gltf => {
+            const spaceGateModel = gltf.scene;
+            spaceGateModel.scale.set(200, 200, 200); // setting the scale of our model
+            spaceGateModel.position.set(0, 0, -1300);
+    
+            spaceGateModel.traverse((object) => {
+                if( object.isMesh ){
+                    object.castShadow = true;
+                    /* object.material.metalness = 1.0;
+                    object.material.roughness = 0.2;
+                    object.material.color.set( 1, 1, 1 );
+                    object.material.metalnessMap = object.material.map; */
+                }
+            });
+            const animations = gltf.animations;
+            const spaceGateMixer = new THREE.AnimationMixer(spaceGateModel);
+            this.mixers.push(spaceGateMixer);
+            const animationLoop = spaceGateMixer.clipAction(animations[0]);
+            animationLoop.play();
+            scene.add(spaceGateModel);
+
+            const box = new THREE.Box3().setFromObject(spaceGateModel);
+            const center = new THREE.Vector3();
+            const size = new THREE.Vector3();
+            box.getCenter(center);
+            box.getSize(size);
+
+            this.isCreatingColliders = true;
+            let spaceGateDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+            let spaceGateRigidBody = world.createRigidBody(spaceGateDesc);
+
+            let spaceGateCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
+                .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+                .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+            let spaceGateColliderHandle = world.createCollider(spaceGateCollider, spaceGateRigidBody);
+            this.colliderTags.set(spaceGateColliderHandle.handle, 'spaceGate');
         
-                blackHoleModel.traverse((object) => {
-                    if( object.isMesh ){
-                        object.castShadow = true;
-                        /* object.material.metalness = 1.0;
-                        object.material.roughness = 0.2;
-                        object.material.color.set( 1, 1, 1 );
-                        object.material.metalnessMap = object.material.map; */
-                    }
-                });
-                const animations = gltf.animations;
-                blackHoleMixer = new THREE.AnimationMixer(blackHoleModel);
-                this.mixers.push(blackHoleMixer);
-                const animationLoop = blackHoleMixer.clipAction(animations[0]);
-                animationLoop.play();
-                scene.add(blackHoleModel);
+            const helper = new THREE.BoxHelper(spaceGateModel, 0xff0000);
+            scene.add(helper);
 
-                const box = new THREE.Box3().setFromObject(blackHoleModel);
-                const center = new THREE.Vector3();
-                const size = new THREE.Vector3();
-                box.getCenter(center);
-                box.getSize(size);
+            this.fixedBodies.push({rigid: spaceGateRigidBody, mesh: spaceGateModel});
+            this.isCreatingColliders = false;
+            this.reportProgress();
+        });    
+    });
 
-                this.isCreatingColliders = true;
-                let blackHoleDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-                let blackHoleRigidBody = world.createRigidBody(blackHoleDesc);
-
-                let blackHoleCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
-                    .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
-                    .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-                let blackHoleColliderHandle = world.createCollider(blackHoleCollider, blackHoleRigidBody);
-                this.colliderTags.set(blackHoleColliderHandle.handle, 'blackHole');
-            
-                const helper = new THREE.BoxHelper(blackHoleModel, 0xff0000);
-                scene.add(helper);
-
-                this.fixedBodies.push({rigid: blackHoleRigidBody, mesh: blackHoleModel});
-                this.isCreatingColliders = false;
-                this.reportProgress();
-            });    
-        });
+    this.isLoaded = true;
     }
     update(world, delta, keysPressed) {
         this.mixers.forEach(m => m.update(delta));
@@ -241,6 +287,9 @@ export class SpaceshipScene{
     }
     getScene(){
         return this.scene;
+    }
+    getIsLoaded(){
+        return this.isLoaded;
     }
     getBodies(){
         return this.bodies;

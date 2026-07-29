@@ -41,6 +41,7 @@ export class CharacterController{
                 });
                 this.ray = ray;
                 this.rigidBody = rigidBody;
+                this.isCollidingFixed = false;
     }
     // update animations and position
     update(world, delta, keysPressed){
@@ -105,63 +106,55 @@ export class CharacterController{
 
             let translation = this.rigidBody.translation();
            // console.log(translation);
-           
-            if(translation.y < -1){
-                this.rigidBody.setNextKinematicTranslation({
-                    x: 0,
-                    y: 10,
-                    z: 0
-                });
-            }else{
-                /* 
-                let cameraPositionOffset = this.camera.position.sub(this.model.position);
-                
-                //this.walkDirection.y += this.lerp(this.storedFall, -9.81 * delta, 0.10);
-                //this.storedFall = this.walkDirection.y;
-
-                this.updateCameraTarget(cameraPositionOffset); */
-                this.ray.origin.x = translation.x;
-                this.ray.origin.y = translation.y;
-                this.ray.origin.z = translation.z;
-
-                let hit = world.castRay(this.ray, 0.5, true, 0xfffffffff);
-                if (hit) {
-                    const point = this.ray.pointAt(hit.toi);
-                    let diff = translation.y - ( point.y + 0.28);
-                    if (diff < 0.0) {
-                        this.storedFall = 0;
-                        this.walkDirection.y = this.lerp(0, Math.abs(diff), 0.5);
-                    }
-                }
-            }
+          
 
             let cameraPositionOffset = this.camera.position.sub(this.model.position);
     
             this.walkDirection.x = this.walkDirection.x * velocity * delta;
             this.walkDirection.z = this.walkDirection.z * velocity * delta;
 
-            this.rigidBody.setNextKinematicTranslation({
+            const desiredPosition = {
                 x: translation.x + this.walkDirection.x,
                 y: translation.y + this.walkDirection.y,
                 z: translation.z + this.walkDirection.z
-            })                
-            this.model.position.set(translation.x, translation.y, translation.z);
-            this.updateCameraTarget(cameraPositionOffset);
-                
-            // move model & camera
-          /*   const moveX = this.walkDirection.x * velocity * delta;
-            const moveZ = this.walkDirection.z * velocity * delta;
-            this.model.position.x += moveX;
-            this.model.position.z += moveZ;
-            this.updateCameraTarget(moveX, moveZ); */
+            };
+            
+            let finalPosition;
+
+            if (this.isCollidingFixed) {
+                        // dozvoli pomeraj SAMO ako se time smanjuje penetracija (tj. igrač pokušava da se izvuče)
+                const doorPos = { x: 0, y: 1, z: -1000 }; // ista pozicija kao station
+
+                const currentDist = Math.sqrt(
+                    (translation.x - doorPos.x) ** 2 +
+                    (translation.y - doorPos.y) ** 2 +
+                    (translation.z - doorPos.z) ** 2
+                );
+                const desiredDist = Math.sqrt(
+                    (desiredPosition.x - doorPos.x) ** 2 +
+                    (desiredPosition.y - doorPos.y) ** 2 +
+                    (desiredPosition.z - doorPos.z) ** 2
+                );
+
+                if (desiredDist > currentDist) {
+                    // igrač se udaljava od stanice — dozvoli
+                    finalPosition = desiredPosition;
+                } else {
+                    // igrač i dalje gura ka stanici — blokiraj
+                    finalPosition = { x: translation.x, y: translation.y, z: translation.z };
+                }
+            } else {
+                finalPosition = desiredPosition;
+            }
+            this.rigidBody.setNextKinematicTranslation(finalPosition);
+            this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
+
+            this.updateCameraTarget(cameraPositionOffset, finalPosition);
         }
     }
- 
 
-
-    updateCameraTarget(offset){
+    updateCameraTarget(offset, rigidTranslation){
         // move camera
-        let rigidTranslation = this.rigidBody.translation();
         // update camera target
         this.camera.position.x = rigidTranslation.x + offset.x;
         this.camera.position.y = rigidTranslation.y + offset.y;
@@ -172,10 +165,14 @@ export class CharacterController{
         this.cameraTarget.y = rigidTranslation.y + 1
         this.cameraTarget.z = rigidTranslation.z
         this.orbitControlls.target = this.cameraTarget
+    }    
+    onCollisionStart() {
+        this.isCollidingFixed = true;
+        console.log('COLLISION START');
     }
-    lerp(x, y, a){
-        let result =  x * (1 - a) + y * a;
-        return result
 
-    };
+    onCollisionEnd() {
+        this.isCollidingFixed = false;
+        console.log('COLLISION END');
+    }
 }

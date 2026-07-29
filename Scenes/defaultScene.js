@@ -18,20 +18,21 @@ export class DefaultScene{
                         this.fixedBodies = [];
                         this.characterController = null;
                         this.mixers = [];
+                        this.colliderTags = new Map();
+                        this.isColliding = false;
 
                         // onLoadProgress is a callback we get from main js
                         this.onLoadProgress = null;
                         this.loadedAssets = 0;
-                        this.totalAssests = 1;
+                        this.totalAssests = 2;
                     }
     // creating and returning the scene
     load(){
     const scene = this.scene;
     const loader = this.loader;
-    let controller;
 // --- physics context for rapier physics ---
     this.physicsContext.onReady((RAPIER, world) => {
- // Floor (static)
+    // Floor (static)
     const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0));
     world.createCollider(RAPIER.ColliderDesc.cuboid(1000, 1, 1000).setDensity(5.0), floorBody);
   
@@ -111,8 +112,10 @@ export class DefaultScene{
                 let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(-1, 3, 1);
                 let charRigidBody = world.createRigidBody(bodyDesc);
                 // collider
-                let dynamicCollider = RAPIER.ColliderDesc.ball(10);
-                world.createCollider(dynamicCollider, charRigidBody);
+                let charCollider = RAPIER.ColliderDesc.ball(10);
+                let charColliderHandle = world.createCollider(charCollider, charRigidBody);
+
+                this.colliderTags.set(charColliderHandle.handle, 'character');
 
                 const ray =  new RAPIER.Ray( 
                 { x: 0, y: 0, z: 0 },
@@ -130,11 +133,56 @@ export class DefaultScene{
                     ray,
                     charRigidBody
                 );
-                this.reportProgress()   
+                this.colliderTags.set()
+                //this.colliderTags.set(blackHoleColliderHandle.handle, 'blackHole');
+                this.reportProgress();   
             });
-        
-               
+            // Main door
+            // triangles 9.7k vertecies 5.1k
+            loader.load('models/door/scene.gltf', (gltf) => {
+    
+                const doorModel = gltf.scene;
+                doorModel.scale.set(100, 100, 100);
+                doorModel.position.set(0, 1, -1000) // setting the scale of our model
+    
+                doorModel.traverse((object) => {
+                    if( object.isMesh ){
+                        object.castShadow = true;
+                        object.material.color.set( 1, 1, 1 );
+                    }
+                });
+                const actions = new Map(); // map of our animation actions
+    
+                scene.add(doorModel); // adding our model to the scene
+                const animations = gltf.animations.filter(a => a.name != 'TPose');
+                const doorMixer = new THREE.AnimationMixer(doorModel);
+                // this model has animations for opening and closing the door
+                // they are currently unused but do exist 
+                this.mixers.push(doorMixer);
 
+                const box = new THREE.Box3().setFromObject(doorModel);
+                const center = new THREE.Vector3();
+                const size = new THREE.Vector3();
+                box.getCenter(center);
+                box.getSize(size);
+            
+                // rigid body & collider
+                let doorDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+                let doorRigidBody = world.createRigidBody(doorDesc);
+               
+                let doorCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2).setDensity(5.0)
+                    .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+                    .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+                
+                let doorColliderHandle = world.createCollider(doorCollider, doorRigidBody);
+                this.colliderTags.set(doorColliderHandle.handle, 'door');
+
+                const helper = new THREE.BoxHelper(doorModel, 0xff0000);
+                scene.add(helper);
+
+                this.fixedBodies.push( {rigid: doorRigidBody, mesh: doorModel} );
+                this.reportProgress();   
+            });
     });
     // ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -146,29 +194,29 @@ export class DefaultScene{
     scene.add(svetloIzTacke);
     }
 
-    update(world, delta, keysPressed) {
-        this.mixers.forEach(m => m.update(delta));
-        if (this.characterController) {
-            this.characterController.update(world, delta, keysPressed);
-        }
+update(world, delta, keysPressed) {
+    this.mixers.forEach(m => m.update(delta));
+    if (this.characterController) {
+        this.characterController.update(world, delta, keysPressed);
     }
+}
 
-    getScene(){
-        return this.scene;
-    }
-    getCharacterController(){
-        return this.characterController;
-    }
-    getBodies(){
-        return this.bodies;
-    }
+getScene(){
+    return this.scene;
+}
+getCharacterController(){
+    return this.characterController;
+}
+getBodies(){
+    return this.bodies;
+}
 
-    reportProgress(){
-        this.loadedAssets++;
-        if(this.onLoadProgress){
-            this.onLoadProgress(this.loadedAssets, this.totalAssests);
-        }
+reportProgress(){
+    this.loadedAssets++;
+    if(this.onLoadProgress){
+        this.onLoadProgress(this.loadedAssets, this.totalAssests);
     }
+}
 
 setColliderEnabled(rigidBody, enabled) {
     if (!rigidBody){ 
@@ -205,5 +253,21 @@ enablePhysics(world) {
     if(world)world.gravity = { x: 0.0, y: -9.81, z: 0.0 };
         
         }
+
+handleCollision(handle1, handle2, started){
+        const tag1 = this.colliderTags.get(handle1);
+        const tag2 = this.colliderTags.get(handle2);
+        console.log('collision:', tag1, tag2, 'started:', started);
+
+        const isDoorCollision = (tag1 === 'door' && tag2 === 'character') || (tag1 === 'character' && tag2 === 'door');
+
+        if(isDoorCollision){
+            if(started){
+                this.characterController.onCollisionStart();
+            }else{
+                this.characterController.onCollisionEnd();
+            }
+        }
+    }
    
 }

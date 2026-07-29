@@ -11,22 +11,29 @@ export class SpaceViewerScene{
         this.textureLoader = textureLoader;
         this.entityCreator = entityCreator;
         this.camera = camera;
+        this.animationCallback = null;
+        this.fullPlanetObjects = [];
+        this.naturalSatellites = [];
+        this.sun = null;;
+        this.isLoaded = false;
+
+        // onLoadProgress is a callback we get from main js
+        this.onLoadProgress = null;
+        this.loadedAssets = 0;
+        this.totalAssests = 28;
     }
-getScene(){
+load(){
     //Sunce
     const geometrySunce = new THREE.SphereGeometry(18, 40, 40);
     const materialSunce = new THREE.MeshStandardMaterial();
     const sun = new THREE.Mesh(geometrySunce , materialSunce);
-    sun.name = 'The Sun';
+    sun.name = 'Sun';
 
     sun.material.map = this.textureLoader.load('static/sun/sunmap.jpg');
     sun.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress();
 
-    const sunLabel = document.createElement('h5');
-    sunLabel.textContent = sun.name;
-
-    const sunLabelContainer = document.createElement('div');
-    sunLabelContainer.appendChild(sunLabel);
+    this.sun = sun;
 
     const planetGroup = new THREE.Group();
 
@@ -34,66 +41,96 @@ getScene(){
     const mercury = this.entityCreator.createPlanet(1.7, 30, 'Mercury');
 
     mercury.mesh.material.map = this.textureLoader.load('static/mercury/mercurymap.jpg');
+    this.reportProgress(); 
     mercury.mesh.material.bumpMap = this.textureLoader.load('static/mercury/mercurybump.jpg');
+    this.reportProgress(); 
     mercury.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+
+    this.fullPlanetObjects.push(mercury);
 
     //Venera
     const venus = this.entityCreator.createPlanet(2.2, 45, 'Venus');
 
     venus.mesh.material.map = this.textureLoader.load('static/venus/venus.jpg');
     venus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(venus);
 
     //Zemlja + Mesec
     const earth = this.entityCreator.createPlanet(2, 60, 'Earth');
     earth.mesh.material.map = this.textureLoader.load('static/earth/earth.jpg');
     earth.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
-    const moon = this.entityCreator.createMoon(0.8, 4, 0.5, 0, earth.mesh, 'The Moon');
+    const moon = this.entityCreator.createMoon(0.8, 4, 0.5, 0, earth.mesh, 'Moon');
     moon.mesh.material.map = this.textureLoader.load('static/earth/moon.jpg');
     moon.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(earth);
+    this.naturalSatellites.push(moon);
 
     //Mars
     const mars = this.entityCreator.createPlanet(1.6, 75, 'Mars');
 
     mars.mesh.material.map = this.textureLoader.load('static/mars/mars.jpg');
     mars.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //prvi mesec Marsa - Phobos
     const phobos = this.entityCreator.createMoon(0.7, 2.5, 0, -2, mars.mesh, 'Phobos');
     phobos.mesh.material.map = this.textureLoader.load('static/mars/phobos.jpg');
     phobos.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //drugi mesec Marsa - Deimos
     const deimos = this.entityCreator.createMoon(0.6, -2.5, 0, 3, mars.mesh, 'Deimos');
     deimos.mesh.material.map = this.textureLoader.load('static/mars/deimos.jpg');
     deimos.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
+    this.fullPlanetObjects.push(mars);
+    this.naturalSatellites.push(phobos);
+    this.naturalSatellites.push(deimos);
+    
     //Jupiter
     const jupiter = this.entityCreator.createPlanet(6.3, 100, 'Jupiter');
 
     jupiter.mesh.material.map = this.textureLoader.load('static/jupiter/jup0vss1.jpg');
     jupiter.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //četiri najveća meseca Jupitera
     //Ganymede
     const ganymede = this.entityCreator.createMoon(1.9, 13, 0, -2, jupiter.mesh, 'Ganymede');
     ganymede.mesh.material.map = this.textureLoader.load('static/jupiter/ganymede.jpg');
     ganymede.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //Callisto
     const callisto = this.entityCreator.createMoon(1.7, -12, 0.5, 3, jupiter.mesh,'Callisto');
     callisto.mesh.material.map = this.textureLoader.load('static/jupiter/callisto.jpg');
     callisto.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //Io
     const io = this.entityCreator.createMoon(1, -5, 1, 9, jupiter.mesh, 'Io');
     io.mesh.material.map = this.textureLoader.load('static/jupiter/io.jpg');
     io.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //Europa
     const europa = this.entityCreator.createMoon(0.7, 6, -1, -12, jupiter.mesh, 'Europa');
     europa.mesh.material.map = this.textureLoader.load('static/jupiter/jupiter-europa-surface.jpg');
     europa.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(jupiter);
+    this.naturalSatellites.push(ganymede);
+    this.naturalSatellites.push(callisto);
+    this.naturalSatellites.push(io);
+    this.naturalSatellites.push(europa);
 
     //Saturn
     const saturn = this.entityCreator.createPlanet(6, 145, 'Saturn');
@@ -109,66 +146,95 @@ getScene(){
 
     saturn.mesh.material.map = this.textureLoader.load('static/saturn/saturn.jpg');
     saturn.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     ringOfSaturn.material.map = this.textureLoader.load('static/saturn/saturnRing.png');
     ringOfSaturn.material.transparent = true;
     ringOfSaturn.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //meseci Saturna
     //Titan
     const titan = this.entityCreator.createMoon(1.7, -22, 0.5, 3, saturn.mesh, 'Titan');
     titan.mesh.material.map = this.textureLoader.load('static/saturn/titan.jpg');
     titan.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Rhea
     const rhea = this.entityCreator.createMoon(0.6, -14, 0.5, -5, saturn.mesh, 'Rhea');
     rhea.mesh.material.map = this.textureLoader.load('static/saturn/rhea.jpg');
     rhea.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
-
+    this.reportProgress(); 
     //Iapetus
     const iapetus = this.entityCreator.createMoon(0.6, 12, 0.5, 5, saturn.mesh, 'Iapetus');
     iapetus.mesh.material.map = this.textureLoader.load('static/saturn/iapetus.jpg');
     iapetus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Dione
     const dione = this.entityCreator.createMoon(0.6, 10, 0, 15, saturn.mesh, 'Dione');
     dione.mesh.material.map = this.textureLoader.load('static/saturn/dione.jpg');
     dione.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Tethys
     const tethys = this.entityCreator.createMoon(0.6, 10, 0, -15, saturn.mesh, 'Tethys');
     tethys.mesh.material.map = this.textureLoader.load('static/saturn/tethys.jpg');
     tethys.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Enceladus
     const enceladus = this.entityCreator.createMoon(0.6, -9, 0, 15, saturn.mesh, 'Enceladus');
     enceladus.mesh.material.map = this.textureLoader.load('static/saturn/enceladus.jpg');
     enceladus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Mimas
     const mimas = this.entityCreator.createMoon(0.6, -10, 0, -15, saturn.mesh, 'Mimas');
     mimas.mesh.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
     mimas.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(saturn);
+    this.naturalSatellites.push(titan);
+    this.naturalSatellites.push(rhea);
+    this.naturalSatellites.push(iapetus);
+    this.naturalSatellites.push(dione);
+    this.naturalSatellites.push(tethys);
+    this.naturalSatellites.push(enceladus);
+    this.naturalSatellites.push(mimas);
 
     //Uranus
     const uranus = this.entityCreator.createPlanet(3.8, 185, 'Uranus');
     uranus.mesh.material.map = this.textureLoader.load('static/uranus/uranus.jpg');
     uranus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //meseci Uranusa
     //Titania
     const titania = this.entityCreator.createMoon(0.7, 8, 0, 5, uranus.mesh, 'Titania');
     titania.mesh.material.map = this.textureLoader.load('static/uranus/titania.jpg');
     titania.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
 
     //Umbriel
     const umbriel = this.entityCreator.createMoon(0.7, -8, 0, 5, uranus.mesh, 'Umbriel');
     umbriel.mesh.material.map = this.textureLoader.load('static/uranus/umbriel.jpg');
     umbriel.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(uranus);
+    this.naturalSatellites.push(titania);
+    this.naturalSatellites.push(umbriel);
 
     //Neptune 
     const neptune = this.entityCreator.createPlanet(3.6, 210, 'Neptune');
     neptune.mesh.material.map = this.textureLoader.load('static/neptune/neptune.jpg');
     neptune.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
     //Triton - najveći mesec Neptuna
     const triton = this.entityCreator.createMoon(0.7, -8, 0, 5, neptune.mesh, 'Triton');
     triton.mesh.material.map = this.textureLoader.load('static/neptune/triton.jpg');
     triton.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    this.fullPlanetObjects.push(neptune);
+    this.naturalSatellites.push(triton);
 
     planetGroup.add(mercury.object);
     planetGroup.add(venus.object);
@@ -206,75 +272,82 @@ getScene(){
             this.scene.add(pravougaonoSvetlo2);
             pravougaonoSvetlo2.lookAt(0, 0, 0);
         }
-    
-    return this.scene;
+    this.animationCallback = this.animate(this.fullPlanetObjects, this.naturalSatellites, sun);
+    this.isLoaded = true;
 }
-
-}
-
-function animate() {
-    
-    // pokusaj opet da dodas ovo ili nadji drugi nacin mzd anime.js
-    /*mercury.object.rotation.y += 0.006 * deltaTime; */
-
-    //orbita oko sunca
-    mercury.object.rotateY(0.006);
-    venus.object.rotateY(0.003);
-    earth.object.rotateY(0.0019);
-    mars.object.rotateY(0.0013);
-    jupiter.object.rotateY(0.0022);
-    saturn.object.rotateY(0.002);
-    uranus.object.rotateY(0.0015);
-    neptune.object.rotateY(0.001); 
-   
-    //rotacija planeta i sunca oko svoje ose planeta
+animate(planetGroup, naturalSatellites, sun) {
+    // the sun is a seperate object from the group so we call its rotation seperately
     sun.rotateY(0.004);
-    mercury.mesh.rotateY(0.001);
-    venus.mesh.rotateY(0.001);
-    earth.mesh.rotateY(0.002);
-    mars.mesh.rotateY(0.001);
-    jupiter.mesh.rotateY(0.003);
-    saturn.mesh.rotateY(0.0025);
-    uranus.mesh.rotateY(0.0017);
-    neptune.mesh.rotateY(0.0013);
-    
-    //rotacija oko svoje ose prirodnih satelita
-    moon.mesh.rotateY(0.002);
-    phobos.mesh.rotateY(0.002);
-    deimos.mesh.rotateY(0.002);
-    ganymede.mesh.rotateY(0.002);
-    callisto.mesh.rotateY(0.002);
-    io.mesh.rotateY(0.002);
-    europa.mesh.rotateY(0.002);
-    titan.mesh.rotateY(0.002);
-    rhea.mesh.rotateY(0.002);
-    iapetus.mesh.rotateY(0.002);
-    dione.mesh.rotateY(0.002);
-    tethys.mesh.rotateY(0.002);
-    enceladus.mesh.rotateY(0.002);
-    mimas.mesh.rotateY(0.002);
-    titania.mesh.rotateY(0.002);
-    umbriel.mesh.rotateY(0.002);
-    triton.mesh.rotateY(0.002);
-
-    //rotacija prirodnih satelita oko planeta
-    moon.object.rotateY(0.005);
-    phobos.object.rotateY(0.005);
-    deimos.object.rotateY(0.005);
-    ganymede.object.rotateY(0.005);
-    callisto.object.rotateY(0.005);
-    io.object.rotateY(0.005);
-    europa.object.rotateY(0.005);
-    titan.object.rotateY(0.005);
-    rhea.object.rotateY(0.005);
-    iapetus.object.rotateY(0.005);
-    dione.object.rotateY(0.005);
-    tethys.object.rotateY(0.005);
-    enceladus.object.rotateY(0.005);
-    mimas.object.rotateY(0.005);
-    titania.object.rotateY(0.005);
-    umbriel.object.rotateY(0.005);
-    triton.object.rotateY(0.005);
-
-    renderer.render(scene, camera);
+    if(planetGroup){
+        planetGroup.forEach(c => {
+            switch(c.mesh.name){
+                case 'Mercury':
+                    c.object.rotateY(0.006);
+                    c.mesh.rotateY(0.001);
+                break
+                case 'Venus':
+                    c.object.rotateY(0.003);
+                    c.mesh.rotateY(0.001);
+                break
+                case 'Earth':
+                    c.object.rotateY(0.0019);
+                    c.mesh.rotateY(0.002);
+                break
+                case 'Mars':
+                    c.object.rotateY(0.0013);
+                    c.mesh.rotateY(0.001);
+                break
+                case 'Jupiter':
+                    c.object.rotateY(0.0022);
+                    c.mesh.rotateY(0.003);
+                break
+                case 'Saturn':
+                    c.object.rotateY(0.002);
+                    c.mesh.rotateY(0.0025);
+                break
+                case 'Uranus':
+                    c.object.rotateY(0.0015);
+                    c.mesh.rotateY(0.001);
+                break
+                case 'Neptune':
+                    c.object.rotateY(0.001);
+                    c.mesh.rotateY(0.0013);
+                break            
+            }
+        });
+    }
+        if(naturalSatellites){
+            naturalSatellites.forEach(c => {
+                c.mesh.rotateY(0.002);
+                c.object.rotateY(0.005);
+            });
+        }
 };
+    getScene(){
+        return this.scene;
+    }
+    getAnimationCallback(){
+        return this.animationCallback;
+    }
+    getPlanets(){
+        return this.fullPlanetObjects;
+    }
+    getNaturalSatellites(){
+        return this.naturalSatellites;
+    }
+    getSun(){
+        return this.sun;
+    }
+    getIsLoaded(){
+        return this.isLoaded;
+    }
+    reportProgress(){
+            this.loadedAssets++;
+            console.log('somethin')
+            if(this.onLoadProgress){
+                this.onLoadProgress(this.loadedAssets, this.totalAssests);
+            }
+    }
+}
+
+ 
