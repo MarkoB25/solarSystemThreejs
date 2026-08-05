@@ -41,7 +41,12 @@ export class CharacterController{
                 });
                 this.ray = ray;
                 this.rigidBody = rigidBody;
-                this.isCollidingFixed = false;
+                this.fixedCollisions = [];
+
+                this.isCollidingDoor = false;
+                this.isCollidingRightWall = false;
+                this.isCollidingLeftWall = false;
+                this.isCollidingFrontWall = false;
     }
     // update animations and position
     update(world, delta, keysPressed){
@@ -106,7 +111,6 @@ export class CharacterController{
 
             let translation = this.rigidBody.translation();
            // console.log(translation);
-          
 
             let cameraPositionOffset = this.camera.position.sub(this.model.position);
     
@@ -120,22 +124,51 @@ export class CharacterController{
             };
             
             let finalPosition;
+            let shapeVel = { x: 0.1, y: 0.4, z: 1.0 };
 
-            if (this.isCollidingFixed) {
-                        // dozvoli pomeraj SAMO ako se time smanjuje penetracija (tj. igrač pokušava da se izvuče)
-                const doorPos = { x: 0, y: 1, z: -1000 }; // ista pozicija kao station
+            if (this.isCollidingDoor) {
+                const doorPos = {x: 0, y: 1, z: -900};
+               
 
-                const currentDist = Math.sqrt(
-                    (translation.x - doorPos.x) ** 2 +
-                    (translation.y - doorPos.y) ** 2 +
-                    (translation.z - doorPos.z) ** 2
+                finalPosition = this.handleFixedCollision(finalPosition, desiredPosition, translation, doorPos);
+                console.log('door col')
+            } else if(this.isCollidingRightWall){
+               const rightWallPos =  { x: 900, y: 1, z: 0 };
+                let size = {x: 80, y: 395, z: 1755};
+               finalPosition = this.handleWallCollision(finalPosition, desiredPosition, translation, rightWallPos, size);
+               
+            }else if(this.isCollidingLeftWall){
+                const leftWallPos = {x: -900, y: 1, z: 0 };
+                 let size = {x: 80, y: 395, z: 1755};
+                finalPosition = this.handleWallCollision(finalPosition, desiredPosition, translation, leftWallPos, size);
+            }else if(this.isCollidingFrontWall){
+                const frontWallPos = {  x: 0, y: 1, z: 900 };
+                let size = {x: 1755, y: 395, z: 80}
+                finalPosition = this.handleWallCollision(finalPosition, desiredPosition, translation, frontWallPos, size);
+            }
+            
+            else {
+                 finalPosition = desiredPosition;
+            }
+
+        this.rigidBody.setNextKinematicTranslation(finalPosition);
+        this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
+
+        this.updateCameraTarget(cameraPositionOffset, finalPosition);
+    }
+    }
+    handleFixedCollision(finalPosition, desiredPosition,translation, fixedBodyPosition){ 
+            const bodyPos = fixedBodyPosition;
+            const currentDist = Math.sqrt(
+                    (translation.x - bodyPos.x) ** 2 +
+                    (translation.y - bodyPos.y) ** 2 +
+                    (translation.z - bodyPos.z) ** 2
                 );
                 const desiredDist = Math.sqrt(
-                    (desiredPosition.x - doorPos.x) ** 2 +
-                    (desiredPosition.y - doorPos.y) ** 2 +
-                    (desiredPosition.z - doorPos.z) ** 2
+                    (desiredPosition.x - bodyPos.x) ** 2 +
+                    (desiredPosition.y - bodyPos.y) ** 2 +
+                    (desiredPosition.z - bodyPos.z) ** 2
                 );
-
                 if (desiredDist > currentDist) {
                     // igrač se udaljava od stanice — dozvoli
                     finalPosition = desiredPosition;
@@ -143,16 +176,38 @@ export class CharacterController{
                     // igrač i dalje gura ka stanici — blokiraj
                     finalPosition = { x: translation.x, y: translation.y, z: translation.z };
                 }
-            } else {
-                finalPosition = desiredPosition;
-            }
-            this.rigidBody.setNextKinematicTranslation(finalPosition);
-            this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
-
-            this.updateCameraTarget(cameraPositionOffset, finalPosition);
-        }
+                return finalPosition;
     }
+        handleWallCollision(finalPosition, desiredPos, translation, position, size){ 
+        let wallHalfExtents = { x: size.x/2, y: size/2, z: size.z/2 };
+            // proveri da li bi desiredPos ušao UNUTAR box-a zida
+        const insideX = Math.abs(desiredPos.x - position.x) < wallHalfExtents.x;
+        const insideY = Math.abs(desiredPos.y - position.y) < wallHalfExtents.y;
+        const insideZ = Math.abs(desiredPos.z - position.z) < wallHalfExtents.z;
 
+        if (insideX && insideY && insideZ) {
+            // ušao bi unutar zida — treba blokirati samo onu osu koja izaziva penetraciju
+
+            // proveri PO OSI da li je TRENUTNA pozicija već van zida na toj osi
+            const wasOutsideX = Math.abs(translation.x - position.x) >= wallHalfExtents.x;
+            const wasOutsideY = Math.abs(translation.y - position.y) >= wallHalfExtents.y;
+            const wasOutsideZ = Math.abs(translation.z - position.z) >= wallHalfExtents.z;
+
+            const result = { x: desiredPos.x, y: desiredPos.y, z: desiredPos.z };
+
+            // ako si PRE bio van zida po X osi, a SAD bi ušao — zaustavi samo X komponentu
+            if (wasOutsideX) result.x = translation.x;
+            if (wasOutsideY) result.y = translation.y;
+            if (wasOutsideZ) result.z = translation.z;
+
+            return result;
+        }
+
+        return desiredPos;
+        }
+    setFixedCollisions(fixedBodies){
+        this.fixedCollisions = fixedBodies;
+    }
     updateCameraTarget(offset, rigidTranslation){
         // move camera
         // update camera target
@@ -167,12 +222,41 @@ export class CharacterController{
         this.orbitControlls.target = this.cameraTarget
     }    
     onCollisionStart() {
-        this.isCollidingFixed = true;
+        this.isCollidingDoor = true;
         console.log('COLLISION START');
     }
 
     onCollisionEnd() {
-        this.isCollidingFixed = false;
+        this.isCollidingDoor = false;
+        console.log('COLLISION END');
+    }
+    onWallCollisionStart(tag) {
+        switch(tag){
+            case 'rigthWall':
+                this.isCollidingRightWall = true;
+                break;
+            case 'leftWall':
+                this.isCollidingLeftWall = true;
+                break;
+            case 'frontWall':
+                this.isCollidingFrontWall = true;
+                break;
+        }
+        console.log('COLLISION START');
+    }
+
+    onWallCollisionEnd(tag) {
+          switch(tag){
+            case 'rigthWall':
+                this.isCollidingRightWall = false;
+                break;
+            case 'leftWall':
+                this.isCollidingLeftWall = false;
+                break;
+            case 'frontWall':
+                this.isCollidingFrontWall = false;
+                break;
+        }
         console.log('COLLISION END');
     }
 }

@@ -5,12 +5,12 @@ import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer
 
 
 export class SpaceViewerScene{
-    constructor(scene = new THREE.Scene(), textureLoader = new THREE.TextureLoader(), entityCreator = new EntityCreator(),
-                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000)){
-        this.scene = scene;
+    constructor(camera, textureLoader , entityCreator){
+        this.scene = new THREE.Scene();
+        this.camera = camera;
         this.textureLoader = textureLoader;
         this.entityCreator = entityCreator;
-        this.camera = camera;
+       
         this.animationCallback = null;
         this.fullPlanetObjects = [];
         this.naturalSatellites = [];
@@ -343,7 +343,6 @@ animate(planetGroup, naturalSatellites, sun) {
     }
     reportProgress(){
             this.loadedAssets++;
-            console.log('somethin')
             if(this.onLoadProgress){
                 this.onLoadProgress(this.loadedAssets, this.totalAssests);
             }

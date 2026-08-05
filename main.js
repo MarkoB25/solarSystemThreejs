@@ -8,6 +8,7 @@ import { SpaceshipScene } from './Scenes/spaceshipScene.js';
 import { CharacterController } from './js/CharacterController.js';
 import { SpaceshipController } from './js/SpaceshipController.js';
 import { PhysicsContext } from './js/physicsContext.js';
+import { EntityCreator } from './js/entityCreator.js';
 
 
 let scene = new THREE.Scene(); // initializing scene
@@ -63,7 +64,7 @@ const camera = new THREE.PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    100000
 );
 camera.position.z = 1000;
 camera.position.y = 5;
@@ -82,6 +83,7 @@ let eventQueue;
 
 const loader = new GLTFLoader();
 const physicsContext = new PhysicsContext();
+const entityCreator = new EntityCreator();
 
 // physics engine
 import('@dimforge/rapier3d').then(RAPIER => {
@@ -95,11 +97,10 @@ import('@dimforge/rapier3d').then(RAPIER => {
 });
 
 // initiating scenes
-const defaultSceneClass = new DefaultScene(scene, camera , orbitControls, loader, physicsContext);
-const spaceViewerSceneClass = new SpaceViewerScene();
-const spaceshipSceneClass = new SpaceshipScene(camera, orbitControls, loader, physicsContext, textureLoader);
+const defaultSceneClass = new DefaultScene(scene, camera , orbitControls, loader, physicsContext, textureLoader);
+const spaceViewerSceneClass = new SpaceViewerScene(camera, textureLoader, entityCreator);
+const spaceshipSceneClass = new SpaceshipScene(camera, orbitControls, loader, physicsContext, textureLoader, entityCreator);
 // loading deafult scene
-defaultSceneClass.totalAssests = 1;
 defaultSceneClass.onLoadProgress = updateLoadingProgress;
 showLoadingScreen();
 defaultSceneClass.load();
@@ -115,6 +116,8 @@ const renderer = new THREE.WebGLRenderer({
  
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 // raycaster
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -125,8 +128,8 @@ function onPointerMove( event ) {
 	pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 };
-// function for changing scene after click on wall object
-function wallIntersect(){
+// function for changing scene after click on plane object
+function planeIntersect(){
     raycaster.setFromCamera( pointer, camera );
     let objs =  [];
     scene.children.forEach(child =>{
@@ -139,7 +142,7 @@ function wallIntersect(){
     console.log(currentElement);
 
     if(typeof currentElement === 'object'){
-        if(currentElement.object.name === 'firstWall'){
+        if(currentElement.object.name === 'firstPlane'){
             currentScene = spaceViewerSceneFlag;
             let isLoaded = spaceViewerSceneClass.getIsLoaded();
 
@@ -158,7 +161,7 @@ function wallIntersect(){
             setCamera();
         }
       
-        if(currentElement.object.name === 'secondWall'){
+        if(currentElement.object.name === 'secondPlane'){
             currentScene = spaceshipSceneFlag;
             defaultSceneClass.disablePhysics(world);
             let isLoaded = spaceshipSceneClass.getIsLoaded();
@@ -194,7 +197,8 @@ function setCamera(){
     }
     if(currentScene === spaceshipSceneFlag){
         camera.position.y = 30;
-        camera.position.z = 1000;
+        camera.position.z = 15000;
+       // camera.lookAt(new THREE.Vector3(0 ,0 ,0));
     }
     renderer.render( scene, camera );
 }
@@ -279,13 +283,13 @@ window.addEventListener('mousemove', onPointerMove);
 // click events
 window.addEventListener( 'click', () => {
     if(currentScene == defaulSceneFlag){
-        wallIntersect();
+        planeIntersect();
     }
     if(currentScene == spaceViewerSceneFlag){
         //showDesc();
     } 
     if(currentScene == spaceshipSceneFlag){
-      //  wallIntersect();
+        planeIntersect();
     }
 } );
 // reseize event
@@ -333,6 +337,7 @@ if(world){
         body.mesh.position.set(position.x, position.y, position.z);
         body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
         });
+        defaultSceneClass.animate();
     }
     if(currentScene == spaceshipSceneFlag){
         spaceshipSceneClass.update(world, upadateDelta, keysPressed);
@@ -344,13 +349,20 @@ if(world){
         body.mesh.position.set(position.x, position.y, position.z);
         body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
         });
+
+        const planetGroup = spaceshipSceneClass.getPlanets();
+        const naturalSatellites = spaceshipSceneClass.getNaturalSatellites();
+        const sun = spaceshipSceneClass.getSun();
+        if(planetGroup && sun){
+            spaceshipSceneClass.animate(planetGroup, naturalSatellites, sun);
+        }
     }
 }
     if(currentScene == spaceViewerSceneFlag){
         const planetGroup = spaceViewerSceneClass.getPlanets();
         const naturalSatellites = spaceViewerSceneClass.getNaturalSatellites();
         const sun = spaceViewerSceneClass.getSun();
-        if(planetGroup){
+        if(planetGroup && naturalSatellites && sun){
             spaceViewerSceneClass.animate(planetGroup, naturalSatellites, sun);
         }
         

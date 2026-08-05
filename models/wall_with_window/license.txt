@@ -1,0 +1,11 @@
+Model Information:
+* title:	Scifi Wall With window
+* source:	https://sketchfab.com/3d-models/scifi-wall-with-window-f02cf5b68450434f838ca514e41beb28
+* author:	Carson (https://sketchfab.com/drone86c)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Scifi Wall With window" (https://sketchfab.com/3d-models/scifi-wall-with-window-f02cf5b68450434f838ca514e41beb28) by Carson (https://sketchfab.com/drone86c) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

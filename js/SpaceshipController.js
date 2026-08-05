@@ -31,6 +31,8 @@ export class SpaceshipController{
                 this.helper = helper;
                 this.isCollidingFixed = false;
                 this.IsCollidingTeleport = false;
+                this.collisionTag1 = '';
+                this.collisionTag2 = '';
     }
       // update animations and position
     update(world, delta, keysPressed){
@@ -101,8 +103,8 @@ export class SpaceshipController{
             let finalPosition;
         
             if (this.isCollidingFixed) {
-                        // dozvoli pomeraj SAMO ako se time smanjuje penetracija (tj. igrač pokušava da se izvuče)
-                const stationPos = { x: 500, y: -150, z: 0 }; // ista pozicija kao station
+                if(this.collisionTag1 == 'station' || this.collisionTag2 == 'station'){
+                     const stationPos = {  x: -1500, y: -150, z: 4000  }; // ista pozicija kao station
 
                 const currentDist = Math.sqrt(
                     (translation.x - stationPos.x) ** 2 +
@@ -118,30 +120,58 @@ export class SpaceshipController{
                 if (desiredDist > currentDist) {
                     // igrač se udaljava od stanice — dozvoli
                     finalPosition = desiredPosition;
-                } else {
-                    // igrač i dalje gura ka stanici — blokiraj
-                    finalPosition = { x: translation.x, y: translation.y, z: translation.z };
+                    } else {
+                        // igrač i dalje gura ka stanici — blokiraj
+                        finalPosition = { x: translation.x, y: translation.y, z: translation.z };
+                    }
+                }else if(this.collisionTag1 == 'mercury' || this.collisionTag2 == 'mercury'){
+                        finalPosition = desiredPosition;
+                        console.log('mercury')
+                       
+                }else if(this.collisionTag1 == 'venus' || this.collisionTag2 == 'venus'){
+                        finalPosition = desiredPosition;
+                        console.log('venus')
+                       
+                }else if(this.collisionTag1 == 'earth' || this.collisionTag2 == 'earth'){
+                        finalPosition = desiredPosition;
+                        console.log('earth')
+                       
+                }else if(this.collisionTag1 == 'mars' || this.collisionTag2 == 'mars'){
+                        finalPosition = desiredPosition;
+                        console.log('mars')
+                }else if(this.collisionTag1 == 'jupiter' || this.collisionTag2 == 'jupiter'){
+                        finalPosition = desiredPosition;
+                        console.log('jupiter')
+                }else if(this.collisionTag1 == 'saturn' || this.collisionTag2 == 'saturn'){
+                        finalPosition = desiredPosition;
+                        console.log('saturn')
+                }else if(this.collisionTag1 == 'uranus' || this.collisionTag2 == 'uranus'){
+                        finalPosition = desiredPosition;
+                        console.log('uranus')
+                }else if(this.collisionTag1 == 'neptune' || this.collisionTag2 == 'neptune'){
+                        finalPosition = desiredPosition;
+                        console.log('neptune')
                 }
                 } else {
                     finalPosition = desiredPosition;
                 }
             if(this.IsCollidingTeleport){
                 
-                const newPosition = { x: 1000, y: 0, z: 1000 }; 
+                const newPosition = { x: 10000, y: 0, z: 1000 }; 
                 
                 this.rigidBody.setNextKinematicTranslation(newPosition);
                 this.model.position.set(newPosition.x, newPosition.y, newPosition.z);
-                this.helper.position.set(newPosition.x, newPosition.y, newPosition.z);
+                if(this.helper)this.helper.position.set(newPosition.x, newPosition.y, newPosition.z);
                 let cameraPositionOffset = this.camera.position.sub(this.model.position);
                 this.updateCameraTarget(cameraPositionOffset, newPosition);
                 return;
             }
 
-                console.log(this.model.position)
+               // console.log(this.model.position)
                 
                 this.rigidBody.setNextKinematicTranslation(finalPosition);
                 this.model.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
-                this.helper.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
+                 if(this.helper)this.helper.position.set(finalPosition.x, finalPosition.y, finalPosition.z);
                 
                 this.updateCameraTarget(cameraPositionOffset, finalPosition);
             }
@@ -162,13 +192,17 @@ export class SpaceshipController{
         this.cameraTarget.z = rigidTranslation.z
         this.orbitControlls.target = this.cameraTarget
     }
-    onCollisionStart() {
+    onCollisionStart(tag1, tag2) {
         this.isCollidingFixed = true;
+        this.collisionTag1 = tag1;
+        this.collisionTag2 = tag2;
         console.log('COLLISION START');
     }
 
     onCollisionEnd() {
         this.isCollidingFixed = false;
+        this.collisionTag1 = '';
+        this.collisionTag2 = '';
         console.log('COLLISION END');
     }
     onCollisionStartTeleport() {

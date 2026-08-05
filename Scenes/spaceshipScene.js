@@ -6,7 +6,7 @@ import { SpaceshipController } from '../js/SpaceshipController.js';
 
 export class SpaceshipScene{
     // constructor
-  constructor(camera, orbitControls, loader, physicsContext, textureLoader){
+  constructor(camera, orbitControls, loader, physicsContext, textureLoader, entityCreator){
         this. scene = new THREE.Scene();
         this.camera = camera;
         this.orbitControls = orbitControls;
@@ -21,60 +21,343 @@ export class SpaceshipScene{
         this.bodies = [];
         this.fixedBodies = [];
         this.mixers = [];
+        // arrays for colliders and animations
+        this.planetTags = [];
+        this.planetObjects = [];
+        this.naturalSatellites = [];
+        this.animationCallback = null;
+        this.sun = null;
         // map of entites that have collison and collision flag
         this.colliderTags = new Map();
         this.isCreatingColliders = false;
         // onLoadProgress is a callback we get from main js
         this.onLoadProgress = null;
         this.loadedAssets = 0;
-        this.totalAssests = 5;
+        this.totalAssests = 13;
         this.isLoaded = false;
+        this.skybox = null;
     }
     // creating and returning the scene
     load(){
     const scene = this.scene;
+/* 
+    if(!this.skybox){
+        console.log('Skybox error!')
+    }else{
+        scene.add(this.skybox);
+    } */
 
 // --- physics context for rapier physics ---
     this.physicsContext.onReady((RAPIER, world, eventQueue) => {
 
-    const mercury = this.entityCreator.createPlanet(20, 30, 'Mercury');
-    
-        mercury.mesh.material.map = this.textureLoader.load('static/mercury/mercurymap.jpg');
-        mercury.mesh.material.bumpMap = this.textureLoader.load('static/mercury/mercurybump.jpg');
-        mercury.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
-        mercury.object.position.x = -500;
+   
+const asteroidPositions = [ { x: 8000, y: 1, z: 0 }, { x: 7000, y: 1, z: 0 }, { x: 7500, y: 1, z: 900 }];
+asteroidPositions.forEach(pos => {
 
-    scene.add(mercury.object);
-
-    const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(600, 0, 700));
-    world.createCollider(RAPIER.ColliderDesc.ball(300).setDensity(10), asteroidBody);
-
+    const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(pos.x, pos.y, pos.z));
+    world.createCollider(RAPIER.ColliderDesc.ball(80).setDensity(1000), asteroidBody);
     const asteroid = new THREE.Mesh(
-            new THREE.SphereGeometry(300, 300, 300),
-            new THREE.MeshStandardMaterial({ color: 0xff4444 })
-            )
-    asteroid.material.map = this.textureLoader.load('static/uranus/umbriel.jpg');
+            new THREE.SphereGeometry(80, 80, 80),
+            new THREE.MeshStandardMaterial()
+            );
+    // static/uranus/titania.jpg
+    asteroid.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
     asteroid.material.map.colorSpace = THREE.SRGBColorSpace;
-            scene.add(asteroid);
-            this.reportProgress();
-            this.bodies.push({rigid: asteroidBody, mesh: asteroid});
+    asteroid.position.set(pos.x, pos.y, pos.z);
+    scene.add(asteroid);
+    this.reportProgress();
+    this.bodies.push({rigid: asteroidBody, mesh: asteroid});
+})
 
+// Sun
+    const sun = this.entityCreator.createSphereMesh('sun', 1800);
+     // svetlo iz tacke
+    const svetloIzTacke = new THREE.PointLight(0xe1eb2d, 9000);
+    if(!(svetloIzTacke in sun.children)){
+            sun.add(svetloIzTacke);
+        }
+    // reflektor - pravougaono svetlo za odgovarajucim dimenzijama
+    const pravougaonoSvetlo = new THREE.RectAreaLight(0xe3ba05, 3, 5000, 5000);
+    
+    if(!(pravougaonoSvetlo in sun.children)){
+            sun.add(pravougaonoSvetlo);
+            pravougaonoSvetlo.position.set(0, 3000, 0);
+            pravougaonoSvetlo.lookAt(0, 0, 0);
+            
+        }
+    //drugo svetlo
+    const pravougaonoSvetlo2 = new THREE.RectAreaLight(0xf5d742, 3, 5000, 5000);
+    
+    if(!(pravougaonoSvetlo2 in sun.children)){
+            sun.add(pravougaonoSvetlo2);
+            pravougaonoSvetlo2.position.set(0, -3000, 0);
+            pravougaonoSvetlo2.lookAt(0, 0, 0);
+        }
         
-    // ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    sun.material.map = this.textureLoader.load('static/sun/material_diffuse.png');
+    sun.material.map.colorSpace = THREE.SRGBColorSpace;
 
-    // svetlo iz tacke
-    const svetloIzTacke = new THREE.PointLight(0xffffff, 9000);
-    scene.add(svetloIzTacke);
-    svetloIzTacke.position.y = 200;
+    sun.position.set(0, 0, -4000);
+
+    this.entityCreator.addBallColliderAndRigidBody(sun, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    this.reportProgress();
+    scene.add(sun);
+
+    this.sun = sun;
+    
+// Mercury
+    const mercury = this.entityCreator.createSphereMesh('mercury', 170);
+
+    mercury.material.map = this.textureLoader.load('static/mercury/mercurymap.jpg');
+    this.reportProgress(); 
+    mercury.material.bumpMap = this.textureLoader.load('static/mercury/mercurybump.jpg');
+    this.reportProgress(); 
+    mercury.material.map.colorSpace = THREE.SRGBColorSpace;
+
+    mercury.position.set(3500, 0, -2500);
+
+    this.entityCreator.addBallColliderAndRigidBody(mercury, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('mercury');
+    this.planetObjects.push(mercury);
+    scene.add(mercury);
+    
+
+// Venus
+    const venus = this.entityCreator.createSphereMesh('venus', 220);
+
+    venus.material.map = this.textureLoader.load('static/venus/venus.jpg');
+    venus.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    venus.position.set(-500, 0, -7500);
+
+    this.entityCreator.addBallColliderAndRigidBody(venus, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('venus');
+    this.planetObjects.push(venus);
+    scene.add(venus);
+// Earth
+    const earth = this.entityCreator.createSphereMesh('earth', 200);
+    earth.material.map = this.textureLoader.load('static/earth/earth.jpg');
+    earth.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    earth.position.set(-3500, 0, -1000);
+
+    this.entityCreator.addBallColliderAndRigidBody(earth, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('earth');
+    this.planetObjects.push(earth);
+    scene.add(earth);
+
+        const moon = this.entityCreator.createMoon(80, 400, 0.5, 0, earth, 'moon');
+        moon.mesh.material.map = this.textureLoader.load('static/earth/moon.jpg');
+        moon.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        this.naturalSatellites.push(moon);
+    
+// Mars
+    const mars = this.entityCreator.createSphereMesh('mars', 160);
+    mars.material.map = this.textureLoader.load('static/mars/mars.jpg');
+    mars.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    mars.position.set(-4500, 0, -8000);
+
+    this.entityCreator.addBallColliderAndRigidBody(mars, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('mars');
+    this.planetObjects.push(mars);
+    scene.add(mars);
+
+      //prvi mesec Marsa - Phobos
+        const phobos = this.entityCreator.createMoon(70, 410, 0, -200, mars, 'phobos');
+        phobos.mesh.material.map = this.textureLoader.load('static/mars/phobos.jpg');
+        phobos.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        //drugi mesec Marsa - Deimos
+        const deimos = this.entityCreator.createMoon(60, -430, 0, 300, mars, 'deimos');
+        deimos.mesh.material.map = this.textureLoader.load('static/mars/deimos.jpg');
+        deimos.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        this.naturalSatellites.push(phobos);
+        this.naturalSatellites.push(deimos);
+// Jupiter
+    const jupiter = this.entityCreator.createSphereMesh('jupiter', 630);
+    jupiter.material.map = this.textureLoader.load('static/jupiter/jup0vss1.jpg');
+    jupiter.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    jupiter.position.set(8500, 0, -4000);
+
+    this.entityCreator.addBallColliderAndRigidBody(jupiter, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('jupiter');
+    this.planetObjects.push(jupiter);
+    scene.add(jupiter);
+
+    //četiri najveća meseca Jupitera
+        //Ganymede
+        const ganymede = this.entityCreator.createMoon(190, 1800, 0, 0, jupiter, 'ganymede');
+        ganymede.mesh.material.map = this.textureLoader.load('static/jupiter/ganymede.jpg');
+        ganymede.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        //Callisto
+        const callisto = this.entityCreator.createMoon(170, -1600, 0.5, 500, jupiter,'callisto');
+        callisto.mesh.material.map = this.textureLoader.load('static/jupiter/callisto.jpg');
+        callisto.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        //Io
+        const io = this.entityCreator.createMoon(100, -500, 1, 1400, jupiter, 'io');
+        io.mesh.material.map = this.textureLoader.load('static/jupiter/io.jpg');
+        io.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        //Europa
+        const europa = this.entityCreator.createMoon(70, 900, -1, -1400, jupiter, 'europa');
+        europa.mesh.material.map = this.textureLoader.load('static/jupiter/europa.jpg');
+        europa.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        this.naturalSatellites.push(ganymede);
+        this.naturalSatellites.push(callisto);
+        this.naturalSatellites.push(io);
+        this.naturalSatellites.push(europa);
+    
+// Saturn
+    const saturn = this.entityCreator.createSphereMesh('saturn', 600);
+    saturn.material.map = this.textureLoader.load('static/saturn/saturn.jpg');
+    saturn.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+    // saturns ring
+    const ringGeometry = new THREE.RingGeometry(600, 1100, 30);
+    const ringMaterial = new THREE.MeshStandardMaterial({side: THREE.DoubleSide});
+
+    const ringOfSaturn = new THREE.Mesh(ringGeometry, ringMaterial);
+    ringOfSaturn.rotation.x = Math.PI/2; // 90 stepeni u radijanima
+
+    ringOfSaturn.material.map = this.textureLoader.load('static/saturn/saturnRing.png');
+    ringOfSaturn.material.transparent = true;
+    ringOfSaturn.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress();
+    saturn.add(ringOfSaturn);
+
+    saturn.position.set(5000, 0, 4500);
+
+    this.entityCreator.addBallColliderAndRigidBody(saturn, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('saturn');
+    this.planetObjects.push(saturn);
+    scene.add(saturn);
+
+     //meseci Saturna
+        //Titan
+        const titan = this.entityCreator.createMoon(170, -1600, 0.5, 300, saturn, 'titan');
+        titan.mesh.material.map = this.textureLoader.load('static/saturn/titan.jpg');
+        titan.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Rhea
+        const rhea = this.entityCreator.createMoon(60, -600, 0.5, 1500, saturn, 'rhea');
+        rhea.mesh.material.map = this.textureLoader.load('static/saturn/rhea.jpg');
+        rhea.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Iapetus
+        const iapetus = this.entityCreator.createMoon(60, 1600, 0.5, 200, saturn, 'iapetus');
+        iapetus.mesh.material.map = this.textureLoader.load('static/saturn/iapetus.jpg');
+        iapetus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Dione
+        const dione = this.entityCreator.createMoon(60, 200, 0, -1450, saturn, 'dione');
+        dione.mesh.material.map = this.textureLoader.load('static/saturn/dione.jpg');
+        dione.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Tethys
+        const tethys = this.entityCreator.createMoon(60, 1450, 0, -800, saturn, 'tethys');
+        tethys.mesh.material.map = this.textureLoader.load('static/saturn/tethys.jpg');
+        tethys.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Enceladus
+        const enceladus = this.entityCreator.createMoon(60, 1300, 0, 1100, saturn, 'enceladus');
+        enceladus.mesh.material.map = this.textureLoader.load('static/saturn/enceladus.jpg');
+        enceladus.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+        //Mimas
+        const mimas = this.entityCreator.createMoon(60, -2000, 0, -850, saturn, 'mimas');
+        mimas.mesh.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
+        mimas.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+
+        this.naturalSatellites.push(titan);
+        this.naturalSatellites.push(rhea);
+        this.naturalSatellites.push(iapetus);
+        this.naturalSatellites.push(dione);
+        this.naturalSatellites.push(tethys);
+        this.naturalSatellites.push(enceladus);
+        this.naturalSatellites.push(mimas);
+    
+// Uranus
+    const uranus = this.entityCreator.createSphereMesh('uranus', 380);
+    uranus.material.map = this.textureLoader.load('static/uranus/uranus.jpg');
+    uranus.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    uranus.position.set(-9000, 0, 2000);
+
+    this.entityCreator.addBallColliderAndRigidBody(uranus, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('uranus');
+    this.planetObjects.push(uranus);
+    scene.add(uranus);
+
+      //meseci Uranusa
+        //Titania
+        const titania = this.entityCreator.createMoon(70, 800, 0, 50, uranus, 'titania');
+        titania.mesh.material.map = this.textureLoader.load('static/uranus/titania.jpg');
+        titania.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        //Umbriel
+        const umbriel = this.entityCreator.createMoon(70, -850, 0, 50, uranus, 'umbriel');
+        umbriel.mesh.material.map = this.textureLoader.load('static/uranus/umbriel.jpg');
+        umbriel.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress(); 
+    
+        this.naturalSatellites.push(titania);
+        this.naturalSatellites.push(umbriel);
+    
+// Neptune
+    const neptune = this.entityCreator.createSphereMesh('neptune', 360);
+    neptune.material.map = this.textureLoader.load('static/neptune/neptune.jpg');
+    neptune.material.map.colorSpace = THREE.SRGBColorSpace;
+    this.reportProgress(); 
+
+    neptune.position.set(12500, 0, -9000);
+
+    this.entityCreator.addBallColliderAndRigidBody(neptune, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
+    // values added to this array must be the same as the ones in colliderTags
+    this.planetTags.push('neptune');
+    this.planetObjects.push(neptune);
+    scene.add(neptune);
+
+    //Triton - najveći mesec Neptuna
+        const triton = this.entityCreator.createMoon(70, -600, 0, 50, neptune, 'triton');
+        triton.mesh.material.map = this.textureLoader.load('static/neptune/triton.jpg');
+        triton.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
+        this.reportProgress();
+        this.naturalSatellites.push(triton);
 
     // CREATING SPACESHIP
     // Triangles: 2.7 Vertices: 1.4k
     this.loader.load('models/spaceship_lowpoly/scene.gltf', gltf => {
         const model = gltf.scene;
         model.scale.set(20, 20, 20); // setting the scale of our model
-       // model.rotation.y = Math.PI/2;
+        model.position.set(0, 0, 4000);
     
         model.traverse((object) => {
             if( object.isMesh ){
@@ -96,7 +379,7 @@ export class SpaceshipScene{
         );
         // rigid body
         this.isCreatingColliders = true;
-        let shipDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, 0, 0);
+        let shipDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(model.position.x, model.position.y, model.position.z);
         let shipRigidBody = world.createRigidBody(shipDesc);
 
         // getting the dimension of our model in order to make a cuboid c shaped collider
@@ -116,11 +399,12 @@ export class SpaceshipScene{
         // spaceship controller
         
         this.isCreatingColliders = false;
-     // NOVO — wireframe capsule tačno kao collider
-        const helperGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
+        /* const helperGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
         const helperMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
         const helper = new THREE.Mesh(helperGeo, helperMat);
-        scene.add(helper);
+        helper.position.set(model.position.x, model.position.y, model.position.z);
+        scene.add(helper); */
+        let helper;
         this.spaceshipController = new SpaceshipController(model, this.orbitControls, this.camera, 'idle', ray, shipRigidBody, helper);
         scene.add(model);  
         this.reportProgress();
@@ -137,15 +421,13 @@ export class SpaceshipScene{
         stationModel.traverse((object) => {
             if( object.isMesh ){
                 object.castShadow = true;
-                object.material.metalness = 1.0;
-                object.material.roughness = 0.2;
-                object.material.color.set( 1, 1, 1 );
-                object.material.metalnessMap = object.material.map;
+                object.material.metalness = 0.6;
+                object.material.roughness = 0.4;
             }
         });
         const actions = new Map(); // map of our animation actions
 
-        const stationPos = { x: 500, y: -150, z: 0 };
+        const stationPos = { x: -1500, y: -150, z: 4000 };
         //scene.add(stationModel); // adding our model to the scene
         const animations = gltf.animations;
         const stationMixer = new THREE.AnimationMixer(stationModel);
@@ -176,8 +458,8 @@ export class SpaceshipScene{
         let stationColliderHandle = world.createCollider(stationCollider, stationRigidBody);
         this.colliderTags.set(stationColliderHandle.handle, 'station');
 
-        const helper = new THREE.BoxHelper(stationModel, 0xff0000);
-        scene.add(helper);
+       /*  const helper = new THREE.BoxHelper(stationModel, 0xff0000);
+        scene.add(helper); */
 
         this.fixedBodies.push({rigid: stationRigidBody, mesh: stationModel});
         this.isCreatingColliders = false;
@@ -187,8 +469,8 @@ export class SpaceshipScene{
         // Triangles: 10.3k Vertices: 5.4k
         this.loader.load('models/black_hole/scene.gltf', gltf => {
             const blackHoleModel = gltf.scene;
-            blackHoleModel.scale.set(100, 100, 100); // setting the scale of our model
-            blackHoleModel.position.set(-700, 0, -400);
+            blackHoleModel.scale.set(200, 200, 200); // setting the scale of our model
+            blackHoleModel.position.set(-12000, 0, -5000);
     
             blackHoleModel.traverse((object) => {
                 if( object.isMesh ){
@@ -222,60 +504,74 @@ export class SpaceshipScene{
             let blackHoleColliderHandle = world.createCollider(blackHoleCollider, blackHoleRigidBody);
             this.colliderTags.set(blackHoleColliderHandle.handle, 'blackHole');
         
-            const helper = new THREE.BoxHelper(blackHoleModel, 0xff0000);
+           /*  const helper = new THREE.BoxHelper(blackHoleModel, 0xff0000);
             scene.add(helper);
-
+ */
             this.fixedBodies.push({rigid: blackHoleRigidBody, mesh: blackHoleModel});
             this.isCreatingColliders = false;
             this.reportProgress();
-        });    
-    // SPACE GATE
-        // Triangles: 5.5k Vertices: 3.1k
-        this.loader.load('models/space_gate/scene.gltf', gltf => {
-            const spaceGateModel = gltf.scene;
-            spaceGateModel.scale.set(200, 200, 200); // setting the scale of our model
-            spaceGateModel.position.set(0, 0, -1300);
+        });      
+   // SKYBOX
+       // Triangles: 3.8k Vertices: 1.9k
+        this.loader.load('models/skybox/scene.gltf', gltf => {
+            const skyboxModel = gltf.scene;
+            skyboxModel.scale.set(20, 20, 20); // setting the scale of our model
+            skyboxModel.position.set(0, 0, 0);
     
-            spaceGateModel.traverse((object) => {
-                if( object.isMesh ){
+            skyboxModel.traverse((object) => {
+                // names can be check in console when planeIntersects is active this scene
+                // go to main.js to enable or disable
+                if(object.isObject3D)object.children.forEach(c => {
+                    if(c.name == 'Sphere003_gameasset_Sphere003_gameasset_Mat_1_0' ||
+                    c.name == 'Sphere001_gameasset_Sphere001_gameasset_Mat_1_0' || 
+                    c.name == 'Sphere002_gameasset_Sphere002_gameasset_Mat_1_0')object.remove(c);
+                });
+                if( object.isMesh && object.name == "Sphere_Material_0"){
                     object.castShadow = true;
-                    /* object.material.metalness = 1.0;
-                    object.material.roughness = 0.2;
-                    object.material.color.set( 1, 1, 1 );
-                    object.material.metalnessMap = object.material.map; */
+                    object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
+                    this.reportProgress();
+                    object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
+                    //object.material.color = this.textureLoader.load('models/skybox/textures/Sphere.001_gameasset_Mat_1_baseColor.png');
+                    this.reportProgress();
+                    this.skybox = object;
                 }
             });
-            const animations = gltf.animations;
-            const spaceGateMixer = new THREE.AnimationMixer(spaceGateModel);
-            this.mixers.push(spaceGateMixer);
-            const animationLoop = spaceGateMixer.clipAction(animations[0]);
-            animationLoop.play();
-            scene.add(spaceGateModel);
+            console.log(skyboxModel)
+            //skyboxModel.children.forEach(c => c.children.forEach(g => c.remove(g)));
+            scene.add(skyboxModel);
 
-            const box = new THREE.Box3().setFromObject(spaceGateModel);
+            const box = new THREE.Box3().setFromObject(skyboxModel);
             const center = new THREE.Vector3();
             const size = new THREE.Vector3();
             box.getCenter(center);
             box.getSize(size);
 
             this.isCreatingColliders = true;
-            let spaceGateDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-            let spaceGateRigidBody = world.createRigidBody(spaceGateDesc);
+            let skyboxDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+            let skyboxRigidBody = world.createRigidBody(skyboxDesc);
 
-            let spaceGateCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
+            let skyboxCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
                 .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
                 .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-            let spaceGateColliderHandle = world.createCollider(spaceGateCollider, spaceGateRigidBody);
-            this.colliderTags.set(spaceGateColliderHandle.handle, 'spaceGate');
-        
-            const helper = new THREE.BoxHelper(spaceGateModel, 0xff0000);
-            scene.add(helper);
+            let skyboxColliderHandle = world.createCollider(skyboxCollider, skyboxRigidBody);
+            this.colliderTags.set(skyboxColliderHandle.handle, 'skybox');
 
-            this.fixedBodies.push({rigid: spaceGateRigidBody, mesh: spaceGateModel});
+            this.fixedBodies.push({rigid: skyboxRigidBody, mesh: skyboxModel});
             this.isCreatingColliders = false;
             this.reportProgress();
         });    
+        
+        this.animationCallback = this.animate(this.planetObjects, this.naturalSatellites, this.sun);
     });
+        
+    // ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    // svetlo iz tacke
+    const svetloIzTacke = new THREE.PointLight(0xffffff, 9000);
+    scene.add(svetloIzTacke);
+    svetloIzTacke.position.y = 200;
 
     this.isLoaded = true;
     }
@@ -300,20 +596,39 @@ export class SpaceshipScene{
     getthisIsCreatingColliders(){
         return this.isCreatingColliders;
     }
+    getAnimationCallback(){
+        return this.animationCallback;
+    }
+     getPlanets(){
+        return this.planetObjects;
+    }
+    getNaturalSatellites(){
+        return this.naturalSatellites;
+    }
+    getSun(){
+        return this.sun;
+    }
     handleCollision(handle1, handle2, started){
         const tag1 = this.colliderTags.get(handle1);
         const tag2 = this.colliderTags.get(handle2);
         console.log('collision:', tag1, tag2, 'started:', started);
 
         const isStationCollision = (tag1 === 'ship' && tag2 === 'station') || (tag1 === 'station' && tag2 === 'ship');
+        let isPlanetCollision;
+
+        this.planetTags.forEach(p => {
+            if(p == tag1 || p == tag2){
+                isPlanetCollision = true;
+            }
+        });
 
         const isBlackHoleCollision = (tag1 === 'ship' && tag2 === 'blackHole') || (tag1 === 'blackHole' && tag2 === 'ship');
 
-        if(isStationCollision){
+        if(isStationCollision || isPlanetCollision){
             if(started){
-                this.spaceshipController.onCollisionStart();
+                this.spaceshipController.onCollisionStart(tag1, tag2);
             }else{
-                this.spaceshipController.onCollisionEnd();
+                this.spaceshipController.onCollisionEnd(tag1, tag2);
             }
         }
         if(isBlackHoleCollision){
@@ -337,12 +652,9 @@ export class SpaceshipScene{
             return;
             }
         const numColliders = rigidBody.numColliders();
-        //console.log('rigidBody ima', numColliders, 'collidera, setujem enabled:', enabled);
         for (let i = 0; i < numColliders; i++) {
         const collider =  rigidBody.collider(i);
-            //console.log('collider:', collider, 'pre setEnabled');
             collider.setEnabled(enabled);
-            //console.log('posle setEnabled, collider.isEnabled():', collider.isEnabled ? collider.isEnabled() : 'nema isEnabled metodu')
             }
     }
     disablePhysics(world) {
@@ -365,4 +677,56 @@ export class SpaceshipScene{
             }
         if(world)world.gravity = { x: 0.0, y: 0.0, z: 0.0 };
     }
+    animate(planetGroup, naturalSatellites, sun) {
+    // the sun is a seperate object from the group so we call its rotation seperately
+    sun.rotateY(0.002);
+    if(planetGroup){
+        planetGroup.forEach(c => {
+            switch(c.name){
+                case 'mercury':
+                    //c.rotateY(0.006);
+                    c.rotateY(0.001);
+                break
+                case 'venus':
+                    //c.object.rotateY(0.003);
+                    c.rotateY(0.001);
+                break
+                case 'earth':
+                    //c.object.rotateY(0.0019);
+                    c.rotateY(0.002);
+                break
+                case 'mars':
+                    //c.object.rotateY(0.0013);
+                    c.rotateY(0.001);
+                break
+                case 'jupiter':
+                    //c.object.rotateY(0.0022);
+                    c.rotateY(0.003);
+                break
+                case 'saturn':
+                    //c.object.rotateY(0.002);
+                    c.rotateY(0.0025);
+                break
+                case 'uranus':
+                    //c.object.rotateY(0.0015);
+                    c.rotateY(0.001);
+                break
+                case 'neptune':
+                    //c.object.rotateY(0.001);
+                    c.rotateY(0.0013);
+                break            
+            }
+        });
+    }
+        if(naturalSatellites){
+            naturalSatellites.forEach(c => {
+                c.mesh.rotateY(0.002);
+                //c.object.rotateY(0.005);
+            });
+        }
+if(this.skybox){
+    this.skybox.rotateY(0.0005);
+}
+       
+};
 }
