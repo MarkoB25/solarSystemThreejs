@@ -21,6 +21,11 @@ domRenderer.domElement.style.pointerEvents = 'none';
 
 document.body.appendChild(domRenderer.domElement);
 
+//const mainTheme = document.getElementById("mainTheme");
+export const mainTheme = new Audio('static/defaultScene/leberch-space-440026.mp3');
+
+console.log(mainTheme)
+
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBar = document.getElementById('loadingBar');
 const loadingText = document.getElementById('loadingText');
@@ -29,6 +34,7 @@ function showLoadingScreen() {
     loadingScreen.style.display = 'flex';
     loadingScreen.style.opacity = '1';
     loadingBar.style.width = '0%';
+    console.log('loading screen')
 }
 
 function hideLoadingScreen() {
@@ -132,11 +138,13 @@ function onPointerMove( event ) {
 function planeIntersect(){
     raycaster.setFromCamera( pointer, camera );
     let objs =  [];
-    scene.children.forEach(child =>{
-         if(typeof child === 'object'){
-            objs.push(child);
+    let sceneLen = scene.children.length;
+    for(let i = 0; i < sceneLen; i++){
+        if(typeof scene.children[i] === 'object'){
+            objs.push(scene.children[i]);
         }
-    })
+    }
+
     const intersects = raycaster.intersectObjects( objs );
     let currentElement = intersects[0];
     console.log(currentElement);
@@ -147,8 +155,8 @@ function planeIntersect(){
             let isLoaded = spaceViewerSceneClass.getIsLoaded();
 
             if(!isLoaded){
-                showLoadingScreen();
                 spaceViewerSceneClass.onLoadProgress = updateLoadingProgress;
+                showLoadingScreen();
                 scene = spaceViewerSceneClass.load();
 
             }
@@ -160,15 +168,16 @@ function planeIntersect(){
             }  
             setCamera();
         }
-      
+      // MaterialFBXASC032FBXASC0352142172430
+      // Box012_Material_#29_0
         if(currentElement.object.name === 'secondPlane'){
             currentScene = spaceshipSceneFlag;
             defaultSceneClass.disablePhysics(world);
             let isLoaded = spaceshipSceneClass.getIsLoaded();
 
-            if(!isLoaded){
-                showLoadingScreen();
+            if(!isLoaded){  
                 spaceshipSceneClass.onLoadProgress = updateLoadingProgress;
+                showLoadingScreen();
                 spaceshipSceneClass.load();
             }
             spaceshipSceneClass.enablePhysics(world);
@@ -291,6 +300,12 @@ window.addEventListener( 'click', () => {
     if(currentScene == spaceshipSceneFlag){
         planeIntersect();
     }
+    if(mainTheme.paused){
+        mainTheme.play();
+    }
+    if(mainTheme.ended){
+        mainTheme.play();
+    }
 } );
 // reseize event
 window.addEventListener('resize', () => {
@@ -322,34 +337,33 @@ if(world){
         
         });
     }
-    //console.log(eventQueue);
-/* world.colliders.forEach(c => {
-    console.log('handle:', c.handle, 'shape:', c.shape.type);
-}); */
+  
 
     if(currentScene == defaulSceneFlag){
         defaultSceneClass.update(world, upadateDelta, keysPressed);
         const defaultBodies = defaultSceneClass.getBodies();
-        defaultBodies.forEach(body => {
-        const position = body.rigid.translation();
-        const rotation = body.rigid.rotation();
+        let len = defaultBodies.length;
+        for(let i = 0; i < len; i++){
+            const position = defaultBodies[i].rigid.translation();
+            const rotation = defaultBodies[i].rigid.rotation();
 
-        body.mesh.position.set(position.x, position.y, position.z);
-        body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-        });
+            defaultBodies[i].mesh.position.set(position.x, position.y, position.z);
+            defaultBodies[i].mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        }
         defaultSceneClass.animate();
     }
     if(currentScene == spaceshipSceneFlag){
+         
         spaceshipSceneClass.update(world, upadateDelta, keysPressed);
         const spaceshipBodies = spaceshipSceneClass.getBodies();
-        spaceshipBodies.forEach(body => {
-        const position = body.rigid.translation();
-        const rotation = body.rigid.rotation();
+        let len = spaceshipBodies.length;
+        for(let i = 0; i < len; i++){
+            const position = spaceshipBodies[i].rigid.translation();
+            const rotation = spaceshipBodies[i].rigid.rotation();
 
-        body.mesh.position.set(position.x, position.y, position.z);
-        body.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-        });
-
+            spaceshipBodies[i].mesh.position.set(position.x, position.y, position.z);
+            spaceshipBodies[i].mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        }
         const planetGroup = spaceshipSceneClass.getPlanets();
         const naturalSatellites = spaceshipSceneClass.getNaturalSatellites();
         const sun = spaceshipSceneClass.getSun();
@@ -369,7 +383,7 @@ if(world){
     }
 
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
-    window.requestAnimationFrame(gameloop);
+    window.requestAnimationFrame(gameloop, upadateDelta);
     domRenderer.render(scene, camera);
     renderer.render(scene, camera);
 }

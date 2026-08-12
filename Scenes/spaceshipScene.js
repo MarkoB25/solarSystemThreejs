@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {EntityCreator} from '../js/entityCreator.js';
-import { GLTFLoader } from 'three/examples/jsm/Addons.js';
+import { GLTFLoader, RectAreaLightHelper } from 'three/examples/jsm/Addons.js';
 import { SpaceshipController } from '../js/SpaceshipController.js';
+import { mainTheme } from '../main.js';
 
 export class SpaceshipScene{
     // constructor
@@ -33,28 +34,22 @@ export class SpaceshipScene{
         // onLoadProgress is a callback we get from main js
         this.onLoadProgress = null;
         this.loadedAssets = 0;
-        this.totalAssests = 13;
+        this.totalAssests = 37;
         this.isLoaded = false;
         this.skybox = null;
     }
     // creating and returning the scene
     load(){
     const scene = this.scene;
-/* 
-    if(!this.skybox){
-        console.log('Skybox error!')
-    }else{
-        scene.add(this.skybox);
-    } */
 
 // --- physics context for rapier physics ---
     this.physicsContext.onReady((RAPIER, world, eventQueue) => {
 
    
 const asteroidPositions = [ { x: 8000, y: 1, z: 0 }, { x: 7000, y: 1, z: 0 }, { x: 7500, y: 1, z: 900 }];
-asteroidPositions.forEach(pos => {
-
-    const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(pos.x, pos.y, pos.z));
+for(let i = 0; i < asteroidPositions.length; i++){
+    const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z));
     world.createCollider(RAPIER.ColliderDesc.ball(80).setDensity(1000), asteroidBody);
     const asteroid = new THREE.Mesh(
             new THREE.SphereGeometry(80, 80, 80),
@@ -63,11 +58,13 @@ asteroidPositions.forEach(pos => {
     // static/uranus/titania.jpg
     asteroid.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
     asteroid.material.map.colorSpace = THREE.SRGBColorSpace;
-    asteroid.position.set(pos.x, pos.y, pos.z);
+    asteroid.position.set(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z);
+    asteroid.name = 'asteroid' + i;
+    console.log(asteroid.name)
     scene.add(asteroid);
     this.reportProgress();
     this.bodies.push({rigid: asteroidBody, mesh: asteroid});
-})
+}
 
 // Sun
     const sun = this.entityCreator.createSphereMesh('sun', 1800);
@@ -76,28 +73,26 @@ asteroidPositions.forEach(pos => {
     if(!(svetloIzTacke in sun.children)){
             sun.add(svetloIzTacke);
         }
+    const sunCenter = new THREE.Object3D();
+    
     // reflektor - pravougaono svetlo za odgovarajucim dimenzijama
     const pravougaonoSvetlo = new THREE.RectAreaLight(0xe3ba05, 3, 5000, 5000);
-    
-    if(!(pravougaonoSvetlo in sun.children)){
-            sun.add(pravougaonoSvetlo);
-            pravougaonoSvetlo.position.set(0, 3000, 0);
-            pravougaonoSvetlo.lookAt(0, 0, 0);
+    pravougaonoSvetlo.position.set(0, 3000, -4000);
+    pravougaonoSvetlo.lookAt(0, 0, -4000);
+    scene.add(pravougaonoSvetlo)
             
-        }
     //drugo svetlo
     const pravougaonoSvetlo2 = new THREE.RectAreaLight(0xf5d742, 3, 5000, 5000);
-    
-    if(!(pravougaonoSvetlo2 in sun.children)){
-            sun.add(pravougaonoSvetlo2);
-            pravougaonoSvetlo2.position.set(0, -3000, 0);
-            pravougaonoSvetlo2.lookAt(0, 0, 0);
-        }
+    pravougaonoSvetlo2.position.set(0, -3000, -4000);
+    pravougaonoSvetlo2.lookAt(0, 0, -4000);
+    scene.add(pravougaonoSvetlo2)
+
         
     sun.material.map = this.textureLoader.load('static/sun/material_diffuse.png');
     sun.material.map.colorSpace = THREE.SRGBColorSpace;
 
     sun.position.set(0, 0, -4000);
+    sunCenter.position.set(sun.position.x, sun.position.y, sun.position.z);
 
     this.entityCreator.addBallColliderAndRigidBody(sun, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
     this.reportProgress();
@@ -351,6 +346,58 @@ asteroidPositions.forEach(pos => {
         triton.mesh.material.map.colorSpace = THREE.SRGBColorSpace;
         this.reportProgress();
         this.naturalSatellites.push(triton);
+// SKYBOX
+       // Triangles: 3.8k Vertices: 1.9k
+        this.loader.load('models/skybox/scene.gltf', gltf => {
+            const skyboxModel = gltf.scene;
+            skyboxModel.scale.set(20, 20, 20); // setting the scale of our model
+            skyboxModel.position.set(0, 0, 0);
+    
+            skyboxModel.traverse((object) => {
+                // names can be check in console when planeIntersects is active this scene
+                // go to main.js to enable or disable
+                if(object.isObject3D){
+                    let len = object.children.length;
+                    for(let i = 0; i < len; i++){
+                        if(object.children[i].name == 'Sphere003_gameasset_Sphere003_gameasset_Mat_1_0' 
+                            || object.children[i].name == 'Sphere001_gameasset_Sphere001_gameasset_Mat_1_0'
+                            || object.children[i].name == 'Sphere002_gameasset_Sphere002_gameasset_Mat_1_0'
+                        )object.remove(object.children[i]);
+                    }
+                }
+                if( object.isMesh && object.name == "Sphere_Material_0"){
+                    object.castShadow = true;
+                    object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
+                    this.reportProgress();
+                    object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
+                    //object.material.color = this.textureLoader.load('models/skybox/textures/Sphere.001_gameasset_Mat_1_baseColor.png');
+                    this.reportProgress();
+                    this.skybox = object;
+                }
+            });
+            console.log(skyboxModel)
+            scene.add(skyboxModel);
+
+            const box = new THREE.Box3().setFromObject(skyboxModel);
+            const center = new THREE.Vector3();
+            const size = new THREE.Vector3();
+            box.getCenter(center);
+            box.getSize(size);
+
+            this.isCreatingColliders = true;
+            let skyboxDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+            let skyboxRigidBody = world.createRigidBody(skyboxDesc);
+
+            let skyboxCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
+                .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+                .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+            let skyboxColliderHandle = world.createCollider(skyboxCollider, skyboxRigidBody);
+            this.colliderTags.set(skyboxColliderHandle.handle, 'skybox');
+
+            this.fixedBodies.push({rigid: skyboxRigidBody, mesh: skyboxModel});
+            this.isCreatingColliders = false;
+            this.reportProgress();
+        });  
 
     // CREATING SPACESHIP
     // Triangles: 2.7 Vertices: 1.4k
@@ -510,56 +557,7 @@ asteroidPositions.forEach(pos => {
             this.fixedBodies.push({rigid: blackHoleRigidBody, mesh: blackHoleModel});
             this.isCreatingColliders = false;
             this.reportProgress();
-        });      
-   // SKYBOX
-       // Triangles: 3.8k Vertices: 1.9k
-        this.loader.load('models/skybox/scene.gltf', gltf => {
-            const skyboxModel = gltf.scene;
-            skyboxModel.scale.set(20, 20, 20); // setting the scale of our model
-            skyboxModel.position.set(0, 0, 0);
-    
-            skyboxModel.traverse((object) => {
-                // names can be check in console when planeIntersects is active this scene
-                // go to main.js to enable or disable
-                if(object.isObject3D)object.children.forEach(c => {
-                    if(c.name == 'Sphere003_gameasset_Sphere003_gameasset_Mat_1_0' ||
-                    c.name == 'Sphere001_gameasset_Sphere001_gameasset_Mat_1_0' || 
-                    c.name == 'Sphere002_gameasset_Sphere002_gameasset_Mat_1_0')object.remove(c);
-                });
-                if( object.isMesh && object.name == "Sphere_Material_0"){
-                    object.castShadow = true;
-                    object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
-                    this.reportProgress();
-                    object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
-                    //object.material.color = this.textureLoader.load('models/skybox/textures/Sphere.001_gameasset_Mat_1_baseColor.png');
-                    this.reportProgress();
-                    this.skybox = object;
-                }
-            });
-            console.log(skyboxModel)
-            //skyboxModel.children.forEach(c => c.children.forEach(g => c.remove(g)));
-            scene.add(skyboxModel);
-
-            const box = new THREE.Box3().setFromObject(skyboxModel);
-            const center = new THREE.Vector3();
-            const size = new THREE.Vector3();
-            box.getCenter(center);
-            box.getSize(size);
-
-            this.isCreatingColliders = true;
-            let skyboxDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-            let skyboxRigidBody = world.createRigidBody(skyboxDesc);
-
-            let skyboxCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
-                .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
-                .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-            let skyboxColliderHandle = world.createCollider(skyboxCollider, skyboxRigidBody);
-            this.colliderTags.set(skyboxColliderHandle.handle, 'skybox');
-
-            this.fixedBodies.push({rigid: skyboxRigidBody, mesh: skyboxModel});
-            this.isCreatingColliders = false;
-            this.reportProgress();
-        });    
+        });        
         
         this.animationCallback = this.animate(this.planetObjects, this.naturalSatellites, this.sun);
     });
@@ -576,9 +574,15 @@ asteroidPositions.forEach(pos => {
     this.isLoaded = true;
     }
     update(world, delta, keysPressed) {
-        this.mixers.forEach(m => m.update(delta));
+        let len = this.mixers.length;
+        for(let i = 0; i < len; i++){
+            this.mixers[i].update(delta);
+        }
         if (this.spaceshipController) {
             this.spaceshipController.update(world, delta, keysPressed);
+        }
+        if(mainTheme.paused){
+            mainTheme.play();
         }
     }
     getScene(){
@@ -616,11 +620,12 @@ asteroidPositions.forEach(pos => {
         const isStationCollision = (tag1 === 'ship' && tag2 === 'station') || (tag1 === 'station' && tag2 === 'ship');
         let isPlanetCollision;
 
-        this.planetTags.forEach(p => {
-            if(p == tag1 || p == tag2){
+        let plLen = this.planetTags.length;
+        for(let i = 0; i < plLen;i++){
+            if(this.planetTags[i] == tag1 || this.planetTags[i] == tag2){
                 isPlanetCollision = true;
             }
-        });
+        }
 
         const isBlackHoleCollision = (tag1 === 'ship' && tag2 === 'blackHole') || (tag1 === 'blackHole' && tag2 === 'ship');
 
@@ -679,54 +684,57 @@ asteroidPositions.forEach(pos => {
     }
     animate(planetGroup, naturalSatellites, sun) {
     // the sun is a seperate object from the group so we call its rotation seperately
-    sun.rotateY(0.002);
+    
     if(planetGroup){
-        planetGroup.forEach(c => {
-            switch(c.name){
-                case 'mercury':
-                    //c.rotateY(0.006);
-                    c.rotateY(0.001);
-                break
-                case 'venus':
-                    //c.object.rotateY(0.003);
-                    c.rotateY(0.001);
-                break
-                case 'earth':
-                    //c.object.rotateY(0.0019);
-                    c.rotateY(0.002);
-                break
-                case 'mars':
-                    //c.object.rotateY(0.0013);
-                    c.rotateY(0.001);
-                break
-                case 'jupiter':
-                    //c.object.rotateY(0.0022);
-                    c.rotateY(0.003);
-                break
-                case 'saturn':
-                    //c.object.rotateY(0.002);
-                    c.rotateY(0.0025);
-                break
-                case 'uranus':
-                    //c.object.rotateY(0.0015);
-                    c.rotateY(0.001);
-                break
-                case 'neptune':
-                    //c.object.rotateY(0.001);
-                    c.rotateY(0.0013);
-                break            
-            }
-        });
+        let len = planetGroup.length;
+        for(let i = 0; i < len; i++){
+            switch(planetGroup[i].name){
+            case 'mercury':
+                //c.rotateY(0.006);
+                planetGroup[i].rotateY(0.001);
+            break
+            case 'venus':
+                //c.object.rotateY(0.003);
+                planetGroup[i].rotateY(0.001);
+            break
+            case 'earth':
+                //c.object.rotateY(0.0019);
+                planetGroup[i].rotateY(0.002);
+            break
+            case 'mars':
+                //c.object.rotateY(0.0013);
+                planetGroup[i].rotateY(0.001);
+            break
+            case 'jupiter':
+                //c.object.rotateY(0.0022);
+                planetGroup[i].rotateY(0.003);
+            break
+            case 'saturn':
+                //c.object.rotateY(0.002);
+                planetGroup[i].rotateY(0.0025);
+            break
+            case 'uranus':
+                //c.object.rotateY(0.0015);
+                planetGroup[i].rotateY(0.001);
+            break
+            case 'neptune':
+                //c.object.rotateY(0.001);
+                planetGroup[i].rotateY(0.0013);
+            break            
+        }
+        }
+       
     }
         if(naturalSatellites){
-            naturalSatellites.forEach(c => {
-                c.mesh.rotateY(0.002);
-                //c.object.rotateY(0.005);
-            });
+            let len = naturalSatellites.length
+            for(let i = 0; i < len; i++){
+                naturalSatellites[i].mesh.rotateY(0.002);
+            }
         }
-if(this.skybox){
-    this.skybox.rotateY(0.0005);
-}
-       
+        sun.rotateY(0.002);
+    if(this.skybox){
+        this.skybox.rotateY(0.0005);
+    }
+        
 };
 }

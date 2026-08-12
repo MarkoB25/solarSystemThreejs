@@ -66,7 +66,7 @@ export class EntityCreator{
         //console.log(mesh.name)
     }
     createSphereMesh(name, radius){
-        const geometry = new THREE.SphereGeometry(radius, 60, 60);
+        const geometry = new THREE.SphereGeometry(radius, 50, 50);
         const material = new THREE.MeshStandardMaterial();
         const mesh = new THREE.Mesh(geometry , material);
         mesh.name = name;

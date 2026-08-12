@@ -1,0 +1,11 @@
+Model Information:
+* title:	Terminal
+* source:	https://sketchfab.com/3d-models/terminal-8099551ab7c14a8097c6e0e4c3c423b7
+* author:	Helley (https://sketchfab.com/Helley)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Terminal" (https://sketchfab.com/3d-models/terminal-8099551ab7c14a8097c6e0e4c3c423b7) by Helley (https://sketchfab.com/Helley) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -279,48 +279,50 @@ animate(planetGroup, naturalSatellites, sun) {
     // the sun is a seperate object from the group so we call its rotation seperately
     sun.rotateY(0.004);
     if(planetGroup){
-        planetGroup.forEach(c => {
-            switch(c.mesh.name){
+        let len = planetGroup.length;
+        for(let i = 0; i < len; i++){
+            switch(planetGroup[i].name){
                 case 'Mercury':
-                    c.object.rotateY(0.006);
-                    c.mesh.rotateY(0.001);
+                    planetGroup[i].object.rotateY(0.006);
+                    planetGroup[i].mesh.rotateY(0.001);
                 break
                 case 'Venus':
-                    c.object.rotateY(0.003);
-                    c.mesh.rotateY(0.001);
+                    planetGroup[i].object.rotateY(0.003);
+                    planetGroup[i].mesh.rotateY(0.001);
                 break
                 case 'Earth':
-                    c.object.rotateY(0.0019);
-                    c.mesh.rotateY(0.002);
+                    planetGroup[i].object.rotateY(0.0019);
+                    planetGroup[i].mesh.rotateY(0.002);
                 break
                 case 'Mars':
-                    c.object.rotateY(0.0013);
-                    c.mesh.rotateY(0.001);
+                    planetGroup[i].object.rotateY(0.0013);
+                    planetGroup[i].mesh.rotateY(0.001);
                 break
                 case 'Jupiter':
-                    c.object.rotateY(0.0022);
-                    c.mesh.rotateY(0.003);
+                    planetGroup[i].object.rotateY(0.0022);
+                    planetGroup[i].mesh.rotateY(0.003);
                 break
                 case 'Saturn':
-                    c.object.rotateY(0.002);
-                    c.mesh.rotateY(0.0025);
+                    planetGroup[i].object.rotateY(0.002);
+                    planetGroup[i].mesh.rotateY(0.0025);
                 break
                 case 'Uranus':
-                    c.object.rotateY(0.0015);
-                    c.mesh.rotateY(0.001);
+                    planetGroup[i].object.rotateY(0.0015);
+                    planetGroup[i].mesh.rotateY(0.001);
                 break
                 case 'Neptune':
-                    c.object.rotateY(0.001);
-                    c.mesh.rotateY(0.0013);
+                    planetGroup[i].object.rotateY(0.001);
+                    planetGroup[i].mesh.rotateY(0.0013);
                 break            
             }
-        });
+        };
     }
         if(naturalSatellites){
-            naturalSatellites.forEach(c => {
-                c.mesh.rotateY(0.002);
-                c.object.rotateY(0.005);
-            });
+            let len = naturalSatellites.length;
+            for(let i = 0; i < len; i++){
+                    naturalSatellites[i].mesh.rotateY(0.002);
+                    naturalSatellites[i].object.rotateY(0.005);
+                };
         }
 };
     getScene(){

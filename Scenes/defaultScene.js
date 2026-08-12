@@ -47,15 +47,9 @@ this.physicsContext.onReady((RAPIER, world) => {
     floorMesh.position.set(0, -1, 0);
     floorMesh.material.map = this.textureLoader.load('static/defaultScene/floor3.jfif');
     floorMesh.material.map.colorSpace = THREE.SRGBColorSpace;
-     /*  asteroid.material.map = this.textureLoader.load('static/uranus/umbriel.jpg');
-        asteroid.material.map.colorSpace = THREE.SRGBColorSpace; */
     this.fixedBodies.push({rigid: floorBody, mesh: floorMesh});
     scene.add(floorMesh);  
 
-
-   
-  //THREE.BoxGeometry(900, 400, 200),.position.set(640, 170, -1030);
-   
     // planes 
     const planeGeometry = new THREE.PlaneGeometry( 30, 30, 30, 30 );
     const planeMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } );
@@ -64,12 +58,11 @@ this.physicsContext.onReady((RAPIER, world) => {
     plane.name = 'firstPlane';
     scene.add( plane );
     
-   
     const planeMaterial2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
-    const planeGeometry2 = new THREE.PlaneGeometry( 30, 30, 30, 30 );
+    const planeGeometry2 = new THREE.PlaneGeometry( 90, 50, 30, 30 );
     const plane2 = new THREE.Mesh( planeGeometry2, planeMaterial2 );
-    plane2.position.x = 50;
-    plane2.position.y = 50;
+    plane2.material.map = this.textureLoader.load('static/defaultScene/computer_panel.jpg');
+    plane2.position.set(100, 50, 0);
     plane2.name = 'secondPlane';
     scene.add( plane2 );
 
@@ -105,7 +98,59 @@ this.physicsContext.onReady((RAPIER, world) => {
         this.createWallAtPositions(wallPath, rightWallPos, RAPIER, world, 80, 'rightWall');
         this.createWallAtPositions(wallPath, leftWallPos, RAPIER, world, 80, 'leftWall');
         this.createWallAtPositions(wallPath, frontWallPos, RAPIER, world, 80, 'frontWall');
-            
+// SKYBOX
+// Triangles: 5.5k Vertices: 3.1k
+this.loader.load('models/skybox/scene.gltf', gltf => {
+    const skyboxModel = gltf.scene;
+    skyboxModel.scale.set(20, 20, 20); // setting the scale of our model
+    skyboxModel.position.set(0, 0, 0);
+
+    skyboxModel.traverse((object) => {
+        // ids can be check in console when planeIntersects is active this scene
+        // go to main.js to enable or disable
+        if(object.isObject3D){
+             let len = object.children.length;
+                    for(let i = 0; i < len; i++){
+                        if(object.children[i].name == 'Sphere003_gameasset_Sphere003_gameasset_Mat_1_0' 
+                            || object.children[i].name == 'Sphere001_gameasset_Sphere001_gameasset_Mat_1_0'
+                            || object.children[i].name == 'Sphere002_gameasset_Sphere002_gameasset_Mat_1_0'
+                        )object.remove(object.children[i]);
+                    }
+        }
+        if( object.isMesh && object.name == "Sphere_Material_0"){
+            object.castShadow = true;
+            object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
+            this.reportProgress();
+            object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
+            //object.material.color = this.textureLoader.load('models/skybox/textures/Sphere.001_gameasset_Mat_1_baseColor.png');
+            this.reportProgress();
+            this.skybox = object;
+        }
+    });
+    console.log(skyboxModel)
+    scene.add(skyboxModel);
+
+    const box = new THREE.Box3().setFromObject(skyboxModel);
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(size);
+
+    this.isCreatingColliders = true;
+    let skyboxDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+    let skyboxRigidBody = world.createRigidBody(skyboxDesc);
+
+    let skyboxCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
+        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+        .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+    let skyboxColliderHandle = world.createCollider(skyboxCollider, skyboxRigidBody);
+    this.colliderTags.set(skyboxColliderHandle.handle, 'skybox');
+
+    this.fixedBodies.push({rigid: skyboxRigidBody, mesh: skyboxModel});
+    this.isCreatingColliders = false;
+    this.reportProgress();
+    });  
+      
             // Main door
             // triangles 9.7k vertecies 5.1k
             loader.load('models/door/scene.gltf', (gltf) => {
@@ -158,7 +203,7 @@ this.physicsContext.onReady((RAPIER, world) => {
     
                 const wallComputerModel = gltf.scene;
                 wallComputerModel.scale.set(10, 10, 10);// setting the scale of our model
-                wallComputerModel.position.set(0, 30, 0) 
+                wallComputerModel.position.set(-200, 30, 0) 
               //  console.log(wallComputerModel.position);
     
                 wallComputerModel.traverse((object) => {
@@ -253,59 +298,9 @@ this.physicsContext.onReady((RAPIER, world) => {
                     charRigidBody
                 );
                 this.characterController.setFixedCollisions(this.fixedBodies);
-                //this.colliderTags.set(blackHoleColliderHandle.handle, 'blackHole');
                 this.reportProgress();   
             });
-    // SKYBOX
-// Triangles: 5.5k Vertices: 3.1k
-this.loader.load('models/skybox/scene.gltf', gltf => {
-    const skyboxModel = gltf.scene;
-    skyboxModel.scale.set(20, 20, 20); // setting the scale of our model
-    skyboxModel.position.set(0, 0, 0);
-
-    skyboxModel.traverse((object) => {
-        // ids can be check in console when planeIntersects is active this scene
-        // go to main.js to enable or disable
-        if(object.isObject3D)object.children.forEach(c => {
-            if(c.name == 'Sphere003_gameasset_Sphere003_gameasset_Mat_1_0' ||
-                 c.name == 'Sphere001_gameasset_Sphere001_gameasset_Mat_1_0' || 
-                 c.name == 'Sphere002_gameasset_Sphere002_gameasset_Mat_1_0')object.remove(c);
-        });
-        if( object.isMesh && object.name == "Sphere_Material_0"){
-            object.castShadow = true;
-            object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
-            this.reportProgress();
-            object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
-            //object.material.color = this.textureLoader.load('models/skybox/textures/Sphere.001_gameasset_Mat_1_baseColor.png');
-            this.reportProgress();
-            this.skybox = object;
-        }
-    });
-    console.log(skyboxModel)
-    //skyboxModel.children.forEach(c => c.children.forEach(g => c.remove(g)));
-    scene.add(skyboxModel);
-
-    const box = new THREE.Box3().setFromObject(skyboxModel);
-    const center = new THREE.Vector3();
-    const size = new THREE.Vector3();
-    box.getCenter(center);
-    box.getSize(size);
-
-    this.isCreatingColliders = true;
-    let skyboxDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-    let skyboxRigidBody = world.createRigidBody(skyboxDesc);
-
-    let skyboxCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y, size.z/2)
-        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
-        .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-    let skyboxColliderHandle = world.createCollider(skyboxCollider, skyboxRigidBody);
-    this.colliderTags.set(skyboxColliderHandle.handle, 'skybox');
-
-    this.fixedBodies.push({rigid: skyboxRigidBody, mesh: skyboxModel});
-    this.isCreatingColliders = false;
-    this.reportProgress();
-    });  
-            
+       
     });
 
     // ambient light
@@ -319,7 +314,10 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
     }
 
 update(world, delta, keysPressed) {
-    this.mixers.forEach(m => m.update(delta));
+    let len = this.mixers.length;
+    for(let i = 0; i < len; i++){
+        this.mixers[i].update(delta);
+    }
     if (this.characterController) {
         this.characterController.update(world, delta, keysPressed);
     }
