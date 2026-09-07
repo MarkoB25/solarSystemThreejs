@@ -13,7 +13,7 @@ export class SpaceshipController{
  // constructor
     constructor(
             model = THREE.Group,
-            orbitControlls,
+            orbitControls,
             camera = THREE.Camera,
             currentAction,
             ray,
@@ -21,7 +21,7 @@ export class SpaceshipController{
             helper
         ){
                 this.model = model;
-                this.orbitControlls = orbitControlls;
+                this.orbitControls = orbitControls;
                 this.camera = camera;
                 this.currentAction = currentAction;
                 this.toggleMove = false;
@@ -124,31 +124,37 @@ export class SpaceshipController{
                         // igrač i dalje gura ka stanici — blokiraj
                         finalPosition = { x: translation.x, y: translation.y, z: translation.z };
                     }
-                }else if(this.collisionTag1 == 'mercury' || this.collisionTag2 == 'mercury'){
+                } 
+                    
+                if(this.collisionTag1 == 'mercury' || this.collisionTag2 == 'mercury'){
                         finalPosition = desiredPosition;
-                        console.log('mercury')
-                       
-                }else if(this.collisionTag1 == 'venus' || this.collisionTag2 == 'venus'){
+                        console.log('mercury')                      
+                } 
+                if(this.collisionTag1 == 'venus' || this.collisionTag2 == 'venus'){
                         finalPosition = desiredPosition;
-                        console.log('venus')
-                       
-                }else if(this.collisionTag1 == 'earth' || this.collisionTag2 == 'earth'){
+                        console.log('venus')     
+                }
+                if(this.collisionTag1 == 'earth' || this.collisionTag2 == 'earth'){
                         finalPosition = desiredPosition;
-                        console.log('earth')
-                       
-                }else if(this.collisionTag1 == 'mars' || this.collisionTag2 == 'mars'){
+                        console.log('earth')         
+                }
+                if(this.collisionTag1 == 'mars' || this.collisionTag2 == 'mars'){
                         finalPosition = desiredPosition;
                         console.log('mars')
-                }else if(this.collisionTag1 == 'jupiter' || this.collisionTag2 == 'jupiter'){
+                }
+                if(this.collisionTag1 == 'jupiter' || this.collisionTag2 == 'jupiter'){
                         finalPosition = desiredPosition;
                         console.log('jupiter')
-                }else if(this.collisionTag1 == 'saturn' || this.collisionTag2 == 'saturn'){
+                }
+                if(this.collisionTag1 == 'saturn' || this.collisionTag2 == 'saturn'){
                         finalPosition = desiredPosition;
                         console.log('saturn')
-                }else if(this.collisionTag1 == 'uranus' || this.collisionTag2 == 'uranus'){
+                }
+                if(this.collisionTag1 == 'uranus' || this.collisionTag2 == 'uranus'){
                         finalPosition = desiredPosition;
                         console.log('uranus')
-                }else if(this.collisionTag1 == 'neptune' || this.collisionTag2 == 'neptune'){
+                }
+                if(this.collisionTag1 == 'neptune' || this.collisionTag2 == 'neptune'){
                         finalPosition = desiredPosition;
                         console.log('neptune')
                 }
@@ -178,19 +184,18 @@ export class SpaceshipController{
         
     }
 
-    updateCameraTarget(offset, rigidTranslation){
-        // move camera
-        //let rigidTranslation = this.rigidBody.translation();
+    updateCameraTarget(offset, finalPosition){
+       
         // update camera target
-        this.camera.position.x = rigidTranslation.x + offset.x;
-        this.camera.position.y = rigidTranslation.y + offset.y;
-        this.camera.position.z = rigidTranslation.z + offset.z;
-        this.orbitControlls.target = this.cameraTarget;
+        this.camera.position.x = finalPosition.x + offset.x;
+        this.camera.position.y = finalPosition.y + offset.y;
+        this.camera.position.z = finalPosition.z + offset.z;
+        this.orbitControls.target = this.cameraTarget;
 
-        this.cameraTarget.x = rigidTranslation.x
-        this.cameraTarget.y = rigidTranslation.y + 1
-        this.cameraTarget.z = rigidTranslation.z
-        this.orbitControlls.target = this.cameraTarget
+        this.cameraTarget.x = finalPosition.x;
+        this.cameraTarget.y = finalPosition.y;
+        this.cameraTarget.z = finalPosition.z;
+        this.orbitControls.target = this.cameraTarget;
     }
     onCollisionStart(tag1, tag2) {
         this.isCollidingFixed = true;

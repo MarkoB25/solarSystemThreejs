@@ -16,7 +16,7 @@ export class SpaceshipScene{
         this.physicsContext = physicsContext;
         this.textureLoader = textureLoader;
 
-        this.entityCreator = new EntityCreator();
+        this.entityCreator = entityCreator;
 
         // arrays for storing rigid bodies and animtion mixers
         this.bodies = [];
@@ -43,28 +43,28 @@ export class SpaceshipScene{
     const scene = this.scene;
 
 // --- physics context for rapier physics ---
-    this.physicsContext.onReady((RAPIER, world, eventQueue) => {
+this.physicsContext.onReady((RAPIER, world, eventQueue) => {
 
-   
-const asteroidPositions = [ { x: 8000, y: 1, z: 0 }, { x: 7000, y: 1, z: 0 }, { x: 7500, y: 1, z: 900 }];
-for(let i = 0; i < asteroidPositions.length; i++){
-    const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
-        .setTranslation(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z));
-    world.createCollider(RAPIER.ColliderDesc.ball(80).setDensity(1000), asteroidBody);
-    const asteroid = new THREE.Mesh(
-            new THREE.SphereGeometry(80, 80, 80),
-            new THREE.MeshStandardMaterial()
-            );
-    // static/uranus/titania.jpg
-    asteroid.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
-    asteroid.material.map.colorSpace = THREE.SRGBColorSpace;
-    asteroid.position.set(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z);
-    asteroid.name = 'asteroid' + i;
-    console.log(asteroid.name)
-    scene.add(asteroid);
-    this.reportProgress();
-    this.bodies.push({rigid: asteroidBody, mesh: asteroid});
-}
+    
+    const asteroidPositions = [ { x: 8000, y: 1, z: 0 }, { x: 7000, y: 1, z: 0 }, { x: 7500, y: 1, z: 900 }];
+    for(let i = 0; i < asteroidPositions.length; i++){
+        const asteroidBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
+            .setTranslation(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z));
+        world.createCollider(RAPIER.ColliderDesc.ball(80).setDensity(1000), asteroidBody);
+        const asteroid = new THREE.Mesh(
+                new THREE.SphereGeometry(80, 80, 80),
+                new THREE.MeshStandardMaterial()
+                );
+        // static/uranus/titania.jpg
+        asteroid.material.map = this.textureLoader.load('static/saturn/mimas.jpg');
+        asteroid.material.map.colorSpace = THREE.SRGBColorSpace;
+        asteroid.position.set(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z);
+        asteroid.name = 'asteroid' + i;
+        console.log(asteroid.name)
+        scene.add(asteroid);
+        this.reportProgress();
+        this.bodies.push({rigid: asteroidBody, mesh: asteroid});
+    }
 
 // Sun
     const sun = this.entityCreator.createSphereMesh('sun', 1800);
@@ -160,6 +160,7 @@ for(let i = 0; i < asteroidPositions.length; i++){
     this.reportProgress(); 
 
     mars.position.set(-4500, 0, -8000);
+    console.log(mars.castShadow.valueOf())
 
     this.entityCreator.addBallColliderAndRigidBody(mars, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
     // values added to this array must be the same as the ones in colliderTags
@@ -446,7 +447,7 @@ for(let i = 0; i < asteroidPositions.length; i++){
         // spaceship controller
         
         this.isCreatingColliders = false;
-        /* const helperGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
+       /*  const helperGeo = new THREE.BoxGeometry(size.x, size.y, size.z);
         const helperMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
         const helper = new THREE.Mesh(helperGeo, helperMat);
         helper.position.set(model.position.x, model.position.y, model.position.z);
@@ -460,58 +461,54 @@ for(let i = 0; i < asteroidPositions.length; i++){
     // SPACE STATION
         // Triangles: 5.4k Vertices: 3.1k
 
-    this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
+this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
 
-        const stationModel = gltf.scene;
-        stationModel.scale.set(100, 100, 100); // setting the scale of our model
+    const stationModel = gltf.scene;
+    stationModel.scale.set(100, 100, 100); // setting the scale of our model
 
-        stationModel.traverse((object) => {
-            if( object.isMesh ){
-                object.castShadow = true;
-                object.material.metalness = 0.6;
-                object.material.roughness = 0.4;
-            }
-        });
-        const actions = new Map(); // map of our animation actions
-
-        const stationPos = { x: -1500, y: -150, z: 4000 };
-        //scene.add(stationModel); // adding our model to the scene
-        const animations = gltf.animations;
-        const stationMixer = new THREE.AnimationMixer(stationModel);
-        this.mixers.push(stationMixer);
-        const animationLoop = stationMixer.clipAction(animations[0]);
-        animationLoop.play();  
-        
-        // 1. prvo pozicioniraj model TAMO gde treba da bude
-        stationModel.position.set(stationPos.x, stationPos.y, stationPos.z);
-        scene.add(stationModel);
-        stationModel.updateMatrixWorld(true);
-
-        // 2. TEK SAD meri — ovo meri stvarni world-space bounding box na finalnoj poziciji
-        const box = new THREE.Box3().setFromObject(stationModel);
-        const center = new THREE.Vector3();
-        const size = new THREE.Vector3();
-        box.getCenter(center);
-        box.getSize(size);
-
-        this.isCreatingColliders = true;
-        // 3. rigid body ide na IZMERENI centar (koji sad odražava stvarnu poziciju modela + pivot offset)
-        let stationDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
-        let stationRigidBody = world.createRigidBody(stationDesc);
-
-        let stationCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2)
-            .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
-            .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
-        let stationColliderHandle = world.createCollider(stationCollider, stationRigidBody);
-        this.colliderTags.set(stationColliderHandle.handle, 'station');
-
-       /*  const helper = new THREE.BoxHelper(stationModel, 0xff0000);
-        scene.add(helper); */
-
-        this.fixedBodies.push({rigid: stationRigidBody, mesh: stationModel});
-        this.isCreatingColliders = false;
-        this.reportProgress();
+    stationModel.traverse((object) => {
+        if( object.isMesh ){
+            object.castShadow = true;
+            object.material.metalness = 0.6;
+            object.material.roughness = 0.4;
+        }
     });
+    const actions = new Map(); // map of our animation actions
+
+    const stationPos = { x: -1500, y: -150, z: 4000 };
+    const animations = gltf.animations;
+    const stationMixer = new THREE.AnimationMixer(stationModel);
+    this.mixers.push(stationMixer);
+    const animationLoop = stationMixer.clipAction(animations[0]);
+    animationLoop.play();  
+    
+    stationModel.position.set(stationPos.x, stationPos.y, stationPos.z);
+    scene.add(stationModel);
+    stationModel.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(stationModel);
+    const center = new THREE.Vector3();
+    const size = new THREE.Vector3();
+    box.getCenter(center);
+    box.getSize(size);
+
+    this.isCreatingColliders = true;
+    let stationDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+    let stationRigidBody = world.createRigidBody(stationDesc);
+
+    let stationCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2)
+        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+        .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+    let stationColliderHandle = world.createCollider(stationCollider, stationRigidBody);
+    this.colliderTags.set(stationColliderHandle.handle, 'station');
+
+    /* const helper = new THREE.BoxHelper(stationModel, 0xff0000);
+    scene.add(helper); */
+
+    this.fixedBodies.push({rigid: stationRigidBody, mesh: stationModel});
+    this.isCreatingColliders = false;
+    this.reportProgress();
+});
     // BLACK HOLE SUN
         // Triangles: 10.3k Vertices: 5.4k
         this.loader.load('models/black_hole/scene.gltf', gltf => {
@@ -581,9 +578,9 @@ for(let i = 0; i < asteroidPositions.length; i++){
         if (this.spaceshipController) {
             this.spaceshipController.update(world, delta, keysPressed);
         }
-        if(mainTheme.paused){
+       /*  if(mainTheme.paused){
             mainTheme.play();
-        }
+        } */
     }
     getScene(){
         return this.scene;
@@ -617,23 +614,24 @@ for(let i = 0; i < asteroidPositions.length; i++){
         const tag2 = this.colliderTags.get(handle2);
         console.log('collision:', tag1, tag2, 'started:', started);
 
-        const isStationCollision = (tag1 === 'ship' && tag2 === 'station') || (tag1 === 'station' && tag2 === 'ship');
         let isPlanetCollision;
 
         let plLen = this.planetTags.length;
+
         for(let i = 0; i < plLen;i++){
             if(this.planetTags[i] == tag1 || this.planetTags[i] == tag2){
                 isPlanetCollision = true;
             }
         }
 
+        const isStationCollision = (tag1 === 'ship' && tag2 === 'station') || (tag1 === 'station' && tag2 === 'ship');
         const isBlackHoleCollision = (tag1 === 'ship' && tag2 === 'blackHole') || (tag1 === 'blackHole' && tag2 === 'ship');
 
         if(isStationCollision || isPlanetCollision){
             if(started){
                 this.spaceshipController.onCollisionStart(tag1, tag2);
             }else{
-                this.spaceshipController.onCollisionEnd(tag1, tag2);
+                this.spaceshipController.onCollisionEnd();
             }
         }
         if(isBlackHoleCollision){
@@ -663,10 +661,15 @@ for(let i = 0; i < asteroidPositions.length; i++){
             }
     }
     disablePhysics(world) {
-        // dynamic/fixed bodies (floor, box, sphere)
-        this.bodies.forEach(b => { this.setColliderEnabled(b.rigid, false) });
-        this.fixedBodies.forEach(b => { this.setColliderEnabled(b.rigid, false) });
-
+        let bodyLen = this.bodies.length;
+        for(let i = 0; i > bodyLen; i++){
+            this.setColliderEnabled(this.bodies[i].rigid, false);
+        }
+        let fixedBodyLen = this.fixedBodies.length;
+        for(let j = 0; j > fixedBodyLen; j++){
+            this.setColliderEnabled(this.fixedBodies[j].rigid, false);
+        }
+   
         // not in bodies so must be done manually
         if (this.characterController && this.characterController.rigidBody) {
             this.setColliderEnabled(this.characterController.rigidBody, false);
@@ -674,9 +677,15 @@ for(let i = 0; i < asteroidPositions.length; i++){
         if(world)world.gravity = { x: 0.0, y: -9.81, z: 0.0 };
     }
     enablePhysics(world) {
-        this.bodies.forEach(b => { this.setColliderEnabled(b.rigid, true) });
-        this.fixedBodies.forEach(b => { this.setColliderEnabled(b.rigid, true) });
-
+        let bodyLen = this.bodies.length;
+        for(let i = 0; i > bodyLen; i++){
+            this.setColliderEnabled(this.bodies[i].rigid, true);
+        }
+        let fixedBodyLen = this.fixedBodies.length;
+        for(let j = 0; j > fixedBodyLen; j++){
+            this.setColliderEnabled(this.fixedBodies[j].rigid, true);
+        }
+  
         if (this.spaceshipController && this.spaceshipController.rigidBody) {
             this.setColliderEnabled(this.spaceshipController.rigidBody, true);
             }

@@ -29,7 +29,7 @@ load(){
     const sun = new THREE.Mesh(geometrySunce , materialSunce);
     sun.name = 'Sun';
 
-    sun.material.map = this.textureLoader.load('static/sun/sunmap.jpg');
+    sun.material.map = this.textureLoader.load('static/sun/material_diffuse.png');
     sun.material.map.colorSpace = THREE.SRGBColorSpace;
     this.reportProgress();
 

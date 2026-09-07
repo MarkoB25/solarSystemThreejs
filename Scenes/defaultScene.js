@@ -51,40 +51,45 @@ this.physicsContext.onReady((RAPIER, world) => {
     scene.add(floorMesh);  
 
     // planes 
-    const planeGeometry = new THREE.PlaneGeometry( 30, 30, 30, 30 );
+  /*   const planeGeometry = new THREE.PlaneGeometry( 30, 30, 30, 30 );
     const planeMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } );
     const plane = new THREE.Mesh( planeGeometry, planeMaterial );
     plane.position.y = 25;
     plane.name = 'firstPlane';
-    scene.add( plane );
+    scene.add( plane ); */
     
     const planeMaterial2 = new THREE.MeshBasicMaterial( { color: 0x00ffff, side: THREE.DoubleSide } );
-    const planeGeometry2 = new THREE.PlaneGeometry( 90, 50, 30, 30 );
+    const planeGeometry2 = new THREE.PlaneGeometry( 150, 90, 30, 30 );
     const plane2 = new THREE.Mesh( planeGeometry2, planeMaterial2 );
     plane2.material.map = this.textureLoader.load('static/defaultScene/computer_panel.jpg');
-    plane2.position.set(100, 50, 0);
+    plane2.position.set(840, 250, -495);
+    plane2.rotateY(Math.PI/2);
     plane2.name = 'secondPlane';
     scene.add( plane2 );
 
     // Box (dynamic, falls with gravity)
-        const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(100, 50, 0));
-        world.createCollider(RAPIER.ColliderDesc.cuboid(25, 25, 25), boxBody);
-
+     
         const box = new THREE.Mesh(
         new THREE.BoxGeometry(50, 50, 50),
         new THREE.MeshStandardMaterial({ color: 0xff4444 })
         )
+        box.position.set(-200, 50, 0);
         scene.add(box);
+        const boxBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(-100, 50, 0));
+        world.createCollider(RAPIER.ColliderDesc.cuboid(25, 25, 25), boxBody);
+
         this.bodies.push({rigid: boxBody, mesh: box});
     // Sphere 
-        const sphereBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(100, 100, 0));
-        world.createCollider(RAPIER.ColliderDesc.ball(30).setDensity(2.0), sphereBody);
-
         const sphere = new THREE.Mesh(
         new THREE.SphereGeometry(30, 30, 30),
         new THREE.MeshStandardMaterial({ color: 0xff4444 })
         )
+        sphere.position.set(-200, 100, 0);
         scene.add(sphere);
+
+        const sphereBody = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(-100, 100, 0));
+        world.createCollider(RAPIER.ColliderDesc.ball(30).setDensity(2.0), sphereBody);
+
         this.bodies.push({rigid: sphereBody, mesh: sphere});
 
         // Walls with windows 
@@ -127,7 +132,7 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
             this.skybox = object;
         }
     });
-    console.log(skyboxModel)
+   // console.log(skyboxModel)
     scene.add(skyboxModel);
 
     const box = new THREE.Box3().setFromObject(skyboxModel);
@@ -191,8 +196,8 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                 let doorColliderHandle = world.createCollider(doorCollider, doorRigidBody);
                 this.colliderTags.set(doorColliderHandle.handle, 'door');
 
-                const helper = new THREE.BoxHelper(doorModel, 0xff0000);
-                scene.add(helper);
+            /*     const helper = new THREE.BoxHelper(doorModel, 0xff0000);
+                scene.add(helper); */
 
                 this.fixedBodies.push( {rigid: doorRigidBody, mesh: doorModel} );
                 this.reportProgress();   
@@ -203,7 +208,8 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
     
                 const wallComputerModel = gltf.scene;
                 wallComputerModel.scale.set(10, 10, 10);// setting the scale of our model
-                wallComputerModel.position.set(-200, 30, 0) 
+                wallComputerModel.position.set(440, 100, -750);
+                wallComputerModel.rotateY(-Math.PI/2); 
               //  console.log(wallComputerModel.position);
     
                 wallComputerModel.traverse((object) => {
@@ -238,8 +244,8 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                 let wallComputerColliderHandle = world.createCollider(wallComputerCollider, wallComputerRigidBody);
                 this.colliderTags.set(wallComputerColliderHandle.handle, 'wallComputer');
 
-                const helper = new THREE.BoxHelper(wallComputerModel, 0xff0000);
-                scene.add(helper);
+               /*  const helper = new THREE.BoxHelper(wallComputerModel, 0xff0000);
+                scene.add(helper); */
 
                 this.fixedBodies.push( {rigid: wallComputerRigidBody, mesh: wallComputerModel} );
                 this.reportProgress();   
@@ -271,12 +277,21 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                 actions.set('run', runAction);
 
                 this.mixers.push(charMixer);
-    
+
+                const box = new THREE.Box3().setFromObject(model);
+                const center = new THREE.Vector3();
+                const size = new THREE.Vector3();
+                box.getCenter(center);
+                box.getSize(size);
+
+              
                 // rigid body
-                let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(-1, 3, 1);
+                let bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
+                    .setTranslation(model.position.x, model.position.y, model.position.z);
                 let charRigidBody = world.createRigidBody(bodyDesc);
                 // collider
-                let charCollider = RAPIER.ColliderDesc.ball(10);
+                //let charCollider = RAPIER.ColliderDesc.capsule(size.y/2, size.x/4);
+                let charCollider = RAPIER.ColliderDesc.ball(30);
                 let charColliderHandle = world.createCollider(charCollider, charRigidBody);
 
                 this.colliderTags.set(charColliderHandle.handle, 'character');
@@ -285,7 +300,18 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                 { x: 0, y: 0, z: 0 },
                 { x: 0, y: -1, z: 0} 
                 );
-                
+              /*   const helperGeo = new THREE.CapsuleGeometry(
+                    size.x/4,
+                    size.y, // Three.js capsule uzima punu dužinu cilindričnog dela, ne half
+                    8,  // capSegments
+                    16  // radialSegments
+                ); */
+              /*   const helperGeo = new THREE.SphereGeometry(30, 30, 30);
+                const h#РСДelperMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+                const helper = new THREE.Mesh(helperGeo, helperMat);
+              //  const helper = new THREE.BoxHelper(model);
+                helper.position.set(model.position.x, model.position.y, model.position.z);
+                scene.add(helper); */
                 // initializing characterController
                 this.characterController = new CharacterController(
                     model,
@@ -297,7 +323,7 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                     ray,
                     charRigidBody
                 );
-                this.characterController.setFixedCollisions(this.fixedBodies);
+               // this.characterController.setFixedCollisions(this.fixedBodies);
                 this.reportProgress();   
             });
        
@@ -384,32 +410,18 @@ handleCollision(handle1, handle2, started){
         const isFrontWallCollision = (tag1 === 'frontWall'  && tag2 === 'character') || (tag1 === 'character' && tag2 === 'frontWall' );
         const isWallComputerCol = (tag1 === 'wallComputer'  && tag2 === 'character') || (tag1 === 'character' && tag2 === 'wallComputer' );
 
-        if(isDoorCollision || isWallComputerCol){
+        if(isDoorCollision){
             if(started){
-                this.characterController.onCollisionStart();
+                this.characterController.onCollisionStart(tag1, tag2);
             }else{
                 this.characterController.onCollisionEnd();
             }
         }
-        if(isRightWallCollision){
+        if(isRightWallCollision || isFrontWallCollision || isLeftWallCollision){
             if(started){
-                this.characterController.onWallCollisionStart('rightWall');
+                this.characterController.onWallCollisionStart(tag1, tag2);
             }else{
-                this.characterController.onWallCollisionEnd('rightWall');
-            }
-        }
-        if(isLeftWallCollision){
-            if(started){
-                this.characterController.onWallCollisionStart('leftWall');
-            }else{
-                this.characterController.onWallCollisionEnd('leftWall');
-            }
-        }
-        if(isFrontWallCollision){
-            if(started){
-                this.characterController.onWallCollisionStart('frontWall');
-            }else{
-                this.characterController.onWallCollisionEnd('frontWall');
+                this.characterController.onWallCollisionEnd();
             }
         }
 
@@ -454,9 +466,7 @@ handleCollision(handle1, handle2, started){
                     scene.add(helper); */
 
                     this.fixedBodies.push( {rigid: modelRigidBody, mesh: model} );
-                    this.reportProgress();   
-                
-               
+                    this.reportProgress();      
             });
     }
     animate(){

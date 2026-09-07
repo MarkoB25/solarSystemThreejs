@@ -10,7 +10,8 @@ import { SpaceshipController } from './js/SpaceshipController.js';
 import { PhysicsContext } from './js/physicsContext.js';
 import { EntityCreator } from './js/entityCreator.js';
 
-
+const stats = new Stats();
+document.body.appendChild(stats.dom);
 let scene = new THREE.Scene(); // initializing scene
 const textureLoader = new THREE.TextureLoader(); // initializing texture loader
 const domRenderer = new CSS2DRenderer(); // css2dRendere for adding DOM elements to 3d space
@@ -24,8 +25,6 @@ document.body.appendChild(domRenderer.domElement);
 //const mainTheme = document.getElementById("mainTheme");
 export const mainTheme = new Audio('static/defaultScene/leberch-space-440026.mp3');
 
-console.log(mainTheme)
-
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBar = document.getElementById('loadingBar');
 const loadingText = document.getElementById('loadingText');
@@ -34,7 +33,6 @@ function showLoadingScreen() {
     loadingScreen.style.display = 'flex';
     loadingScreen.style.opacity = '1';
     loadingBar.style.width = '0%';
-    console.log('loading screen')
 }
 
 function hideLoadingScreen() {
@@ -65,6 +63,8 @@ const spaceViewerSceneFlag = 'spaceViewerScene';
 init();
 
 function init(){
+
+stats.begin();
 // camera
 const camera = new THREE.PerspectiveCamera(
     45,
@@ -144,7 +144,6 @@ function planeIntersect(){
             objs.push(scene.children[i]);
         }
     }
-
     const intersects = raycaster.intersectObjects( objs );
     let currentElement = intersects[0];
     console.log(currentElement);
@@ -205,8 +204,9 @@ function setCamera(){
         camera.position.z = 300;
     }
     if(currentScene === spaceshipSceneFlag){
-        camera.position.y = 30;
-        camera.position.z = 15000;
+        camera.position.x = 0;
+        camera.position.y = 20;
+        camera.position.z = 6000;
        // camera.lookAt(new THREE.Vector3(0 ,0 ,0));
     }
     renderer.render( scene, camera );
@@ -291,21 +291,15 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('mousemove', onPointerMove);
 // click events
 window.addEventListener( 'click', () => {
-    if(currentScene == defaulSceneFlag){
-        planeIntersect();
-    }
-    if(currentScene == spaceViewerSceneFlag){
-        //showDesc();
-    } 
-    if(currentScene == spaceshipSceneFlag){
-        planeIntersect();
-    }
-    if(mainTheme.paused){
+
+    planeIntersect();
+    
+   /*  if(mainTheme.paused){
         mainTheme.play();
     }
     if(mainTheme.ended){
         mainTheme.play();
-    }
+    } */
 } );
 // reseize event
 window.addEventListener('resize', () => {
@@ -364,6 +358,7 @@ if(world){
             spaceshipBodies[i].mesh.position.set(position.x, position.y, position.z);
             spaceshipBodies[i].mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
         }
+        
         const planetGroup = spaceshipSceneClass.getPlanets();
         const naturalSatellites = spaceshipSceneClass.getNaturalSatellites();
         const sun = spaceshipSceneClass.getSun();
@@ -381,12 +376,13 @@ if(world){
         }
         
     }
-
+    stats.update();
     orbitControls.update(); // konstantno azuriranje, pri svakoj iteraciji
     window.requestAnimationFrame(gameloop, upadateDelta);
     domRenderer.render(scene, camera);
     renderer.render(scene, camera);
 }
+stats.end();
 // calling the main loop
 gameloop();
 }
