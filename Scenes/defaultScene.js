@@ -250,6 +250,55 @@ this.loader.load('models/skybox/scene.gltf', gltf => {
                 this.fixedBodies.push( {rigid: wallComputerRigidBody, mesh: wallComputerModel} );
                 this.reportProgress();   
             }); 
+
+//terminal
+            loader.load('models/terminal/scene.gltf', (gltf) => {
+    
+                const terminal = gltf.scene;
+                terminal.scale.set(100, 100, 100);// setting the scale of our model
+                terminal.position.set(800, 0, -750);
+                terminal.rotateY(-Math.PI/2); 
+              //  console.log(terminal.position);
+    
+                terminal.traverse((object) => {
+                    if( object.isMesh ){
+                        object.castShadow = true;
+                        object.material.color.set( 1, 1, 1 );
+                    }
+                });
+                const actions = new Map(); // map of our animation actions
+    
+                scene.add(terminal); // adding our model to the scene
+                const animations = gltf.animations.filter(a => a.name != 'TPose');
+                const terminalMixer = new THREE.AnimationMixer(terminal);
+                // this model has animations for opening and closing the terminal
+                // they are currently unused but do exist 
+                this.mixers.push(terminalMixer);
+
+                const box = new THREE.Box3().setFromObject(terminal);
+                const center = new THREE.Vector3();
+                const size = new THREE.Vector3();
+                box.getCenter(center);
+                box.getSize(size);
+
+                // rigid body & collider
+                let terminalDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(center.x, center.y, center.z);
+                let terminalRigidBody = world.createRigidBody(terminalDesc);
+               
+                let terminalCollider = RAPIER.ColliderDesc.cuboid(size.x/2, size.y/2, size.z/2).setDensity(5.0)
+                    .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+                    .setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+                
+                let terminalColliderHandle = world.createCollider(terminalCollider, terminalRigidBody);
+                this.colliderTags.set(terminalColliderHandle.handle, 'terminal');
+
+                /* const helper = new THREE.BoxHelper(terminal, 0xff0000);
+                scene.add(helper); */
+
+                this.fixedBodies.push( {rigid: terminalRigidBody, mesh: terminal} );
+                this.reportProgress();   
+            });  
+
  // loading the player characterController with the model and animations
             // triangles 11k vertecies 7k
             loader.load('models/Soldier.glb', (gltf) => {

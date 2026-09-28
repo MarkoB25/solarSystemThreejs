@@ -60,7 +60,7 @@ this.physicsContext.onReady((RAPIER, world, eventQueue) => {
         asteroid.material.map.colorSpace = THREE.SRGBColorSpace;
         asteroid.position.set(asteroidPositions[i].x, asteroidPositions[i].y, asteroidPositions[i].z);
         asteroid.name = 'asteroid' + i;
-        console.log(asteroid.name)
+
         scene.add(asteroid);
         this.reportProgress();
         this.bodies.push({rigid: asteroidBody, mesh: asteroid});
@@ -70,9 +70,9 @@ this.physicsContext.onReady((RAPIER, world, eventQueue) => {
     const sun = this.entityCreator.createSphereMesh('sun', 1800);
      // svetlo iz tacke
     const svetloIzTacke = new THREE.PointLight(0xe1eb2d, 9000);
-    if(!(svetloIzTacke in sun.children)){
-            sun.add(svetloIzTacke);
-        }
+    svetloIzTacke.position.set(0, 0, -4000);
+    scene.add(svetloIzTacke);
+
     const sunCenter = new THREE.Object3D();
     
     // reflektor - pravougaono svetlo za odgovarajucim dimenzijama
@@ -160,7 +160,6 @@ this.physicsContext.onReady((RAPIER, world, eventQueue) => {
     this.reportProgress(); 
 
     mars.position.set(-4500, 0, -8000);
-    console.log(mars.castShadow.valueOf())
 
     this.entityCreator.addBallColliderAndRigidBody(mars, 'fixed', this.bodies, this.fixedBodies, this.colliderTags, RAPIER, world);
     // values added to this array must be the same as the ones in colliderTags
@@ -367,7 +366,6 @@ this.physicsContext.onReady((RAPIER, world, eventQueue) => {
                     }
                 }
                 if( object.isMesh && object.name == "Sphere_Material_0"){
-                    object.castShadow = true;
                     object.material.map = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_baseColor.png');
                     this.reportProgress();
                     object.material.normalMap = this.textureLoader.load('models/skybox/textures/Sphere.002_gameasset_Mat_1_normal.png');
@@ -376,7 +374,6 @@ this.physicsContext.onReady((RAPIER, world, eventQueue) => {
                     this.skybox = object;
                 }
             });
-            console.log(skyboxModel)
             scene.add(skyboxModel);
 
             const box = new THREE.Box3().setFromObject(skyboxModel);
@@ -519,12 +516,27 @@ this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
             blackHoleModel.traverse((object) => {
                 if( object.isMesh ){
                     object.castShadow = true;
-                    /* object.material.metalness = 1.0;
-                    object.material.roughness = 0.2;
-                    object.material.color.set( 1, 1, 1 );
-                    object.material.metalnessMap = object.material.map; */
+                    if(object.children != null)object.children = [];
+
+                console.log(
+                    object.name,
+                    '| vertexa:', object.geometry.attributes.position.count,
+                    '| materijal:', object.material.type,
+                    '| providan:', object.material.transparent,
+                    '| tekstura:', object.material.map?.image?.width + 'x' + object.material.map?.image?.height
+                );
+
+                // if(object.name == "Saturn_Clouds_Material_#63_0")object.visible = false;
+                // if(object.name == "Saturn_Material_#50_0")object.visible = false;
+                if(object.name == "Saturn_Clouds_Material_#62_0")object.visible = false;
+                //if(object.name == "Sphere_Tethys_Material_#64_0")object.visible = false;
+                //if(object.name == "Saturn_Rings_Down_Material_#63_0")object.visible = false;
+                //if(object.name == "ConeDown_Material_#64_0")object.visible = false;
+                //if(object.name == "ConeUP_Material_#64_0")object.visible = false;
+
                 }
             });
+            console.log(blackHoleModel);
             const animations = gltf.animations;
             const blackHoleMixer = new THREE.AnimationMixer(blackHoleModel);
             this.mixers.push(blackHoleMixer);
@@ -578,9 +590,9 @@ this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
         if (this.spaceshipController) {
             this.spaceshipController.update(world, delta, keysPressed);
         }
-       /*  if(mainTheme.paused){
+        if(mainTheme.paused){
             mainTheme.play();
-        } */
+        }
     }
     getScene(){
         return this.scene;
@@ -662,11 +674,11 @@ this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
     }
     disablePhysics(world) {
         let bodyLen = this.bodies.length;
-        for(let i = 0; i > bodyLen; i++){
+        for(let i = 0; i < bodyLen; i++){
             this.setColliderEnabled(this.bodies[i].rigid, false);
         }
         let fixedBodyLen = this.fixedBodies.length;
-        for(let j = 0; j > fixedBodyLen; j++){
+        for(let j = 0; j < fixedBodyLen; j++){
             this.setColliderEnabled(this.fixedBodies[j].rigid, false);
         }
    
@@ -678,11 +690,11 @@ this.loader.load('models/the_saturn_orbiter/scene.gltf', (gltf) => {
     }
     enablePhysics(world) {
         let bodyLen = this.bodies.length;
-        for(let i = 0; i > bodyLen; i++){
+        for(let i = 0; i < bodyLen; i++){
             this.setColliderEnabled(this.bodies[i].rigid, true);
         }
         let fixedBodyLen = this.fixedBodies.length;
-        for(let j = 0; j > fixedBodyLen; j++){
+        for(let j = 0; j < fixedBodyLen; j++){
             this.setColliderEnabled(this.fixedBodies[j].rigid, true);
         }
   

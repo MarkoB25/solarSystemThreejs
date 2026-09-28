@@ -4,7 +4,7 @@ export class SpaceshipController{
      // temporary data
         walkDirection = new THREE.Vector3(0, 0, 0);
         rotateAngle = new THREE.Vector3(0, 1, 0);
-        rotateQuaterion = new THREE.Quaternion();
+        rotateQuaternion = new THREE.Quaternion();
         cameraTarget = new THREE.Vector3();
         // constants
         fadeDuration = 0.2;
@@ -77,8 +77,8 @@ export class SpaceshipController{
                 }        
                
             // rotate character
-            this.rotateQuaterion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
-            this.model.quaternion.rotateTowards(this.rotateQuaterion, 0.2);
+            this.rotateQuaternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
+            this.model.quaternion.rotateTowards(this.rotateQuaternion, 0.2);
             // calculate direction
             this.camera.getWorldDirection(this.walkDirection);
             this.walkDirection.y = 0;

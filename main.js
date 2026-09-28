@@ -57,7 +57,7 @@ const backgroundImage = textureLoader.load('static/stars/stars.jpg');
 scene.background = backgroundImage;
 
 const spaceshipSceneFlag = 'spaceshipScene';
-const defaulSceneFlag = 'default';
+const defaultSceneFlag = 'default';
 const spaceViewerSceneFlag = 'spaceViewerScene';
 
 init();
@@ -193,7 +193,7 @@ function planeIntersect(){
 // function to change camera based on wich scene is active
 function setCamera(){
     
-    if(currentScene === defaulSceneFlag){
+    if(currentScene === defaultSceneFlag){
         camera.position.x = defaultSceneClass.characterController.model.position.x; 
         camera.position.y = 30;
         camera.position.z = 300;
@@ -218,7 +218,7 @@ const keysPressed = [];
 window.addEventListener('keydown', (e) => {
     let cc = defaultSceneClass.getCharacterController();
     let sc = spaceshipSceneClass.getSpaceshipController();
-    if(e.key === 'Shift' && cc  && currentScene == defaulSceneFlag && keysPressed.indexOf(e.key) === -1 ){
+    if(e.key === 'Shift' && cc  && currentScene == defaultSceneFlag && keysPressed.indexOf(e.key) === -1 ){
         keysPressed.push(e.key);
         cc.toggleRun = true;
        // console.log(characterController.toggleRun);
@@ -232,7 +232,7 @@ window.addEventListener('keydown', (e) => {
         (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
         keysPressed.indexOf(e.key) === -1 ) &&
         cc  &&
-        currentScene == defaulSceneFlag
+        currentScene == defaultSceneFlag
     ){
             keysPressed.push(e.key);
             cc.toggleWalk = true;
@@ -249,11 +249,11 @@ window.addEventListener('keydown', (e) => {
         sc.toggleMove = true;
        // console.log(keysPressed);
     };
-    if(e.key === 'Escape' && currentScene != defaulSceneFlag){
+    if(e.key === 'Escape' && currentScene != defaultSceneFlag){
         if(currentScene == spaceshipSceneFlag){
             spaceshipSceneClass.disablePhysics(world);
         }
-       currentScene = defaulSceneFlag;
+       currentScene = defaultSceneFlag;
        scene = defaultSceneClass.getScene();
        defaultSceneClass.enablePhysics(world);
        setCamera();
@@ -264,7 +264,7 @@ window.addEventListener('keyup', (e) => {
     let cc = defaultSceneClass.getCharacterController();
     let sc = spaceshipSceneClass.getSpaceshipController();
 
-    if(e.key === 'Shift' && cc && currentScene === defaulSceneFlag){
+    if(e.key === 'Shift' && cc && currentScene === defaultSceneFlag){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
         cc.toggleRun = false;
     }else if(e.key === 'Shift' && sc && currentScene === spaceshipSceneFlag){
@@ -274,7 +274,7 @@ window.addEventListener('keyup', (e) => {
     if(
         (e.key === 'w' || e.key === 'a' || e.key === 's' || e.key === 'd') && 
         cc  &&
-        currentScene == defaulSceneFlag
+        currentScene == defaultSceneFlag
     ){
         keysPressed.splice(keysPressed.indexOf(e.key), 1);
         cc.toggleWalk = false;
@@ -294,12 +294,12 @@ window.addEventListener( 'click', () => {
 
     planeIntersect();
     
-   /*  if(mainTheme.paused){
+    if(mainTheme.paused){
         mainTheme.play();
     }
     if(mainTheme.ended){
         mainTheme.play();
-    } */
+    }
 } );
 // reseize event
 window.addEventListener('resize', () => {
@@ -322,7 +322,7 @@ if(world){
         world.step(eventQueue);
 
         eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-            if(currentScene == defaulSceneFlag){
+            if(currentScene == defaultSceneFlag){
                 defaultSceneClass.handleCollision(handle1, handle2, started);
             }
             if(currentScene == spaceshipSceneFlag){
@@ -333,7 +333,7 @@ if(world){
     }
   
 
-    if(currentScene == defaulSceneFlag){
+    if(currentScene == defaultSceneFlag){
         defaultSceneClass.update(world, upadateDelta, keysPressed);
         const defaultBodies = defaultSceneClass.getBodies();
         let len = defaultBodies.length;
